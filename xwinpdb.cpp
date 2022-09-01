@@ -24,3 +24,9 @@ XWinPDB::XWinPDB(QIODevice *pDevice): XBinary(pDevice)
 {
 
 }
+
+bool XWinPDB::loadLibrary(QString sFileName)
+{
+    // TODO
+    return false;
+}

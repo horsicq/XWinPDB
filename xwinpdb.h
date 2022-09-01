@@ -29,6 +29,7 @@ class XWinPDB: public QObject
 
 public:
     XWinPDB(QIODevice *pDevice);
+    bool loadLibrary(QString sFileName);
 };
 
 #endif // XWINPDB_H
