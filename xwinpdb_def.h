@@ -21,7 +21,19 @@
 #ifndef XWINPDB_DEF_H
 #define XWINPDB_DEF_H
 
+#pragma comment(lib,"Advapi32.lib")
+#pragma comment(lib,"OleAut32.lib")
+
 #include <QtGlobal>
+#include <QString>
+
+#ifdef Q_OS_WIN32
+#include <windows.h>
+#include "dia2.h"
+#include "diaCreate.h"
+#include "cvConst.h"
+#include "diacreate.h"
+#endif
 
 namespace XWINPDB_DEF
 {

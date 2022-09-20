@@ -21,15 +21,36 @@
 #ifndef XWINPDB_H
 #define XWINPDB_H
 
+#include <QObject>
+#include <QIODevice>
+#include "xbinary.h"
 #include "xwinpdb_def.h"
 
-class XWinPDB: public QObject
+class XWinPDB: public XBinary
 {
     Q_OBJECT
 
 public:
     XWinPDB(QIODevice *pDevice);
-    bool loadLibrary(QString sFileName);
+    ~XWinPDB();
+
+    bool loadMSDIALibrary(QString sFileName);
+    bool loadFile(QString sFileName);
+    virtual QString getName();
+    void test();
+
+private:
+#ifdef Q_OS_WIN
+    void _testSymbol(IDiaSymbol *pSymbol);
+    QString _get_name(IDiaSymbol *pSymbol);
+    QString _get_compilerName(IDiaSymbol *pSymbol);
+#endif
+private:
+#ifdef Q_OS_WIN
+    IDiaDataSource *g_pDiaDataSource;
+    IDiaSession *g_pDiaSession;
+    IDiaSymbol *g_pGlobal;
+#endif
 };
 
 #endif // XWINPDB_H
