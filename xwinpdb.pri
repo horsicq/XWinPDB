@@ -23,9 +23,9 @@ DISTFILES += \
     $$PWD/README.md \
     $$PWD/xwinpdb.cmake
 
-!contains(XCONFIG, xbinary) {
-    XCONFIG += xbinary
-    include($$PWD/../Formats/xbinary.pri)
+!contains(XCONFIG, xpe) {
+    XCONFIG += xpe
+    include($$PWD/../Formats/xpe.pri)
 }
 
 INCLUDEPATH += $$PWD/msdia
