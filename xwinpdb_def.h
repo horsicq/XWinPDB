@@ -27,14 +27,6 @@
 #include <QtGlobal>
 #include <QString>
 
-#ifdef Q_OS_WIN32
-#include <windows.h>
-#include "dia2.h"
-#include "diaCreate.h"
-#include "cvConst.h"
-#include "diacreate.h"
-#endif
-
 namespace XWINPDB_DEF
 {
     struct OBJECTRECORD

@@ -26,6 +26,14 @@
 #include "xpe.h"
 #include "xwinpdb_def.h"
 
+#ifdef Q_OS_WIN32
+#include <windows.h>
+#include "dia2.h"
+#include "diaCreate.h"
+#include "cvConst.h"
+#include "diacreate.h"
+#endif
+
 class XWinPDB: public XBinary
 {
     Q_OBJECT
@@ -73,18 +81,8 @@ public:
 private:
 #ifdef Q_OS_WIN
     void _testSymbol(IDiaSymbol *pSymbol);
-    quint32 _get_symIndexId(IDiaSymbol *pSymbol);
-    quint32 _get_symTag(IDiaSymbol *pSymbol);
-    QString _get_name(IDiaSymbol *pSymbol);
-    QString _get_guid(IDiaSymbol *pSymbol);
-    QString _get_symbolsFileName(IDiaSymbol *pSymbol);
-    quint32 _get_age(IDiaSymbol *pSymbol);
-    quint32 _get_signature(IDiaSymbol *pSymbol);
-    quint32 _get_machineType(IDiaSymbol *pSymbol);
-    bool _get_isCTypes(IDiaSymbol *pSymbol);
-    bool _get_isStripped(IDiaSymbol *pSymbol);
-    QString _get_compilerName(IDiaSymbol *pSymbol);
-    quint32 _get_Count(IDiaEnumSymbols *pEnumSymbols);
+
+    quint32 getNumberOfChildren(IDiaSymbol *pSymbol);
 #endif
 private:
 #ifdef Q_OS_WIN
