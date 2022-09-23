@@ -68,6 +68,20 @@ public:
         QList<quint32> listBaseType;
     };
 
+    struct UDT_RECORD
+    {
+        QString sName;
+        qint32 nOffset;
+        qint32 nSize;
+    };
+
+    struct UDT_STRUCT
+    {
+        QString sName;
+        qint32 nSize;
+        QList<UDT_RECORD> listRecords;
+    };
+
     XWinPDB(QIODevice *pDevice);
     ~XWinPDB();
 
@@ -81,8 +95,9 @@ public:
 private:
 #ifdef Q_OS_WIN
     void _testSymbol(IDiaSymbol *pSymbol);
-
     quint32 getNumberOfChildren(IDiaSymbol *pSymbol);
+    IDiaSymbol *getSymbolById(quint32 nId);
+    UDT_STRUCT getUdtStruct(quint32 nId);
 #endif
 private:
 #ifdef Q_OS_WIN
