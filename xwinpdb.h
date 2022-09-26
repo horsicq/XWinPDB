@@ -39,6 +39,12 @@ class XWinPDB: public XBinary
     Q_OBJECT
 
 public:
+
+    struct OPTIONS
+    {
+        bool bFixTypes;
+    };
+
     struct PDB_INFO
     {
         QString sName;
@@ -68,18 +74,25 @@ public:
         QList<quint32> listBaseType;
     };
 
-    struct UDT_RECORD
+    enum ET
     {
-        QString sName;
-        qint32 nOffset;
-        qint32 nSize;
+        ET_UNKNOWN=0,
+        ET_BASETYPE,
+        ET_STRUCT,
+        ET_CLASS,
+        ET_UNION,
+        ET_INTERFACE,
+        ET_DATA,
+        ET_ARRAY
     };
 
-    struct UDT_STRUCT
+    struct ELEM_STRUCT
     {
         QString sName;
         qint32 nSize;
-        QList<UDT_RECORD> listRecords;
+        ET eType;
+        qint32 nOffset;
+        QList<ELEM_STRUCT> listRecords;
     };
 
     XWinPDB(QIODevice *pDevice);
@@ -97,7 +110,9 @@ private:
     void _testSymbol(IDiaSymbol *pSymbol);
     quint32 getNumberOfChildren(IDiaSymbol *pSymbol);
     IDiaSymbol *getSymbolById(quint32 nId);
-    UDT_STRUCT getUdtStruct(quint32 nId);
+    ELEM_STRUCT handleElement(quint32 nId,OPTIONS *pOptions);
+    ELEM_STRUCT handleElement(IDiaSymbol *pSymbol,OPTIONS *pOptions,qint32 nLevel=0);
+    QString elemStructToString(ELEM_STRUCT elemStruct,OPTIONS *pOptions);
 #endif
 private:
 #ifdef Q_OS_WIN

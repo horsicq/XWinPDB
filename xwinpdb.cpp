@@ -289,7 +289,7 @@ IDiaSymbol *func_name(IDiaSymbol *pSymbol)              \
 {                                                       \
     IDiaSymbol *pResult=nullptr;                        \
     IDiaSymbol *pTemp=nullptr;                          \
-    if(pSymbol->pdb_name(&pResult)==S_OK)               \
+    if(pSymbol->pdb_name(&pTemp)==S_OK)                 \
     {                                                   \
         pResult=pTemp;                                  \
     }                                                   \
@@ -657,6 +657,8 @@ void XWinPDB::test()
 //    quint32 v_symIndexId=_pdb_sym_get_symIndexId(g_pGlobal);
 //    quint32 v_symTag=_pdb_sym_get_symTag(g_pGlobal);
 
+    OPTIONS options={};
+
     PDSTRUCT pdStruct={};
 
     PDB_INFO pdbInfo=getPdbInfo(&pdStruct);
@@ -665,9 +667,12 @@ void XWinPDB::test()
 
     for(qint32 i=0;i<nNumberOfRecords;i++)
     {
-        UDT_STRUCT udtStruct=getUdtStruct(pdbInfo.listUDT_struct.at(i));
+        ELEM_STRUCT udtStruct=handleElement(pdbInfo.listUDT_struct.at(i),&options);
+        QString sRecord=elemStructToString(udtStruct,&options);
 
-        break;
+        qDebug("%s",sRecord.toLatin1().data());
+
+//        break;
     }
 
 //    QString v_name=_pdb_sym_get_name(g_pGlobal);
@@ -978,28 +983,216 @@ IDiaSymbol *XWinPDB::getSymbolById(quint32 nId)
 }
 #endif
 #ifdef Q_OS_WIN
-XWinPDB::UDT_STRUCT XWinPDB::getUdtStruct(quint32 nId)
+XWinPDB::ELEM_STRUCT XWinPDB::handleElement(quint32 nId,OPTIONS *pOptions)
 {
-    UDT_STRUCT result={};
+    ELEM_STRUCT result={};
 
     IDiaSymbol *pSymbol=getSymbolById(nId);
 
     if(pSymbol)
     {
-        quint32 nKind=_pdb_sym_get_udtKind(pSymbol);
+        result=handleElement(pSymbol,pOptions,0);
 
-        QString sType;
+        pSymbol->Release();
+    }
 
-        if      (nKind==0)          sType="struct";
-        else if (nKind==1)          sType="class";
-        else if (nKind==2)          sType="union";
-        else if (nKind==3)          sType="interface";
+    return result;
+}
+#endif
+#ifdef Q_OS_WIN
+XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint32 nLevel)
+{
+    ELEM_STRUCT result={};
+
+    quint32 nSymTag=_pdb_sym_get_symTag(pSymbol);
+//    QString sName=_pdb_sym_get_name(pSymbol);
+//    quint32 nSize=_pdb_sym_get_length(pSymbol);
+
+    if(nSymTag==SymTagData)
+    {
+        result.eType=ET_DATA;
+        // TODO get_dataKind
+        // TODO get_locationType
 
         QString sName=_pdb_sym_get_name(pSymbol);
 
+        IDiaSymbol *pType=_pdb_sym_get_type(pSymbol);
+
+        if(pType)
+        {
+            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+
+            if(record.eType==ET_BASETYPE)
+            {
+                result.sName=QString("%1 %2").arg(record.sName,sName);
+            }
+            else if(record.eType==ET_ARRAY)
+            {
+                result.sName=record.sName.replace("#NAME#",sName);
+            }
+            else
+            {
+                result.sName=sName; // TODO fix
+            }
+
+            result.nSize=record.nSize;
+            result.nOffset=_pdb_sym_get_offset(pSymbol);
+
+            pType->Release();
+        }
+    }
+    else if(nSymTag==SymTagBaseType)
+    {
+        result.eType=ET_BASETYPE;
+
+        result.nSize=_pdb_sym_get_length(pSymbol);
+        quint32 nBaseType=_pdb_sym_get_baseType(pSymbol);
+
+        switch(nBaseType)
+        {
+            case 0:     result.sName="<btNoType>";          break;
+            case 1:     result.sName="void";                break;
+            case 2:     result.sName="char";                break;
+            case 3:     result.sName="wchar_t";             break;
+            case 4:     result.sName="signed char";         break;
+            case 5:     result.sName="unsigned char";       break;
+            case 6:     result.sName="int";                 break;
+            case 7:     result.sName="unsigned int";        break;
+            case 8:     result.sName="float";               break;
+            case 9:     result.sName="BCD";                 break;
+            case 10:    result.sName="bool";                break;
+            case 11:    result.sName="short";               break;
+            case 12:    result.sName="unsigned short";      break;
+            case 13:    result.sName="long";                break;
+            case 14:    result.sName="unsigned long";       break;
+            case 15:    result.sName="__int8";              break;
+            case 16:    result.sName="__int16";             break;
+            case 17:    result.sName="__int32";             break;
+            case 18:    result.sName="__int64";             break;
+            case 19:    result.sName="__int128";            break;
+            case 20:    result.sName="unsigned __int8";     break;
+            case 21:    result.sName="unsigned __int16";    break;
+            case 22:    result.sName="unsigned __int32";    break;
+            case 23:    result.sName="unsigned __int64";    break;
+            case 24:    result.sName="unsigned __int128";   break;
+            case 25:    result.sName="CURRENCY";            break;
+            case 26:    result.sName="DATE";                break;
+            case 27:    result.sName="VARIANT";             break;
+            case 28:    result.sName="COMPLEX";             break;
+            case 29:    result.sName="BIT";                 break;
+            case 30:    result.sName="BSTR";                break;
+            case 31:    result.sName="HRESULT";             break;
+            case 32:    result.sName="char16_t";            break;
+            case 33:    result.sName="char32_t";            break;
+            default:    qDebug("FIXME");
+        }
+
+        if(pOptions->bFixTypes)
+        {
+            // TODO Check!
+            if(((nBaseType==7)||(nBaseType==14))&&(result.nSize!=4)) // "unsigned int"
+            {
+                switch(result.nSize)
+                {
+                    case 1:     result.sName="unsigned char";       break;
+                    case 2:     result.sName="unsigned short";      break;
+                    case 4:     result.sName="unsigned int";        break;
+                    case 8:     result.sName="unsigned long long";  break;
+                }
+            }
+
+            if(((nBaseType==6)||(nBaseType==13))&&(result.nSize!=4)) // "int"
+            {
+                switch(result.nSize)
+                {
+                    case 1:     result.sName="char";                break;
+                    case 2:     result.sName="short";               break;
+                    case 4:     result.sName="int";                 break;
+                    case 8:     result.sName="long long";           break;
+                }
+            }
+        }
+    }
+    else if(nSymTag==SymTagUDT)
+    {
+        QString sType;
+
+        QString sName=_pdb_sym_get_name(pSymbol);
+        quint32 nKind=_pdb_sym_get_udtKind(pSymbol);
+
+        if(nKind==0)
+        {
+            sType="struct";
+            result.eType=ET_STRUCT;
+        }
+        else if(nKind==1)
+        {
+            sType="class";
+            result.eType=ET_CLASS;
+        }
+        else if(nKind==2)
+        {
+            sType="union";
+            result.eType=ET_UNION;
+        }
+        else if(nKind==3)
+        {
+            sType="interface";
+            result.eType=ET_INTERFACE;
+        }
+
         result.sName=QString("%1 %2").arg(sType,sName);
         result.nSize=_pdb_sym_get_length(pSymbol);
+    }
+    else if(nSymTag==SymTagPointerType)
+    {
+        _testSymbol(pSymbol);
+        qDebug("SymTagPointerType");
+    }
+    else if(nSymTag==SymTagArrayType)
+    {
+        result.eType=ET_ARRAY;
+        quint32 nCount=_pdb_sym_get_count(pSymbol);
+        // TODO [x][y][z]...
+        // TODO if nLimit > X then no prefix type
+        // TODO _pdb_sym_get_arrayIndexType
 
+        IDiaSymbol *pType=_pdb_sym_get_type(pSymbol);
+
+        if(pType)
+        {
+            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+
+            result.sName=QString("%1 #NAME#[%2]").arg(record.sName,QString::number(nCount));
+            result.nSize=nCount*record.nSize;
+            // TODO Check get_length
+
+            pType->Release();
+        }
+    }
+    else if(nSymTag==SymTagEnum)
+    {
+        _testSymbol(pSymbol);
+        qDebug("SymTagEnum");
+    }
+    else if(nSymTag==SymTagFunctionType)
+    {
+        _testSymbol(pSymbol);
+        qDebug("SymTagFunctionType");
+    }
+    else if(nSymTag==SymTagFunctionArgType)
+    {
+        _testSymbol(pSymbol);
+        qDebug("SymTagFunctionArgType");
+    }
+    else
+    {
+        _testSymbol(pSymbol);
+        qDebug("UnknownType: %d",nSymTag);
+    }
+
+    if(nLevel==0)
+    {
         IDiaEnumSymbols *pEnumSymbols;
         if(pSymbol->findChildren(SymTagNull,nullptr,nsNone,&pEnumSymbols)==S_OK)
         {
@@ -1008,11 +1201,8 @@ XWinPDB::UDT_STRUCT XWinPDB::getUdtStruct(quint32 nId)
 
             while(SUCCEEDED(pEnumSymbols->Next(1,&pRecord,&celt))&&(celt==1))
             {
-//                _testSymbol(pSymbol);
-                UDT_RECORD record={};
-
-                record.sName=_pdb_sym_get_name(pRecord);
-                record.nOffset=_pdb_sym_get_offset(pRecord);
+    //                _testSymbol(pSymbol);
+                ELEM_STRUCT record=handleElement(pRecord,pOptions,nLevel+1);
 
                 result.listRecords.append(record);
 
@@ -1021,10 +1211,34 @@ XWinPDB::UDT_STRUCT XWinPDB::getUdtStruct(quint32 nId)
 
             pEnumSymbols->Release();
         }
-
-        pSymbol->Release();
     }
 
     return result;
+}
+#endif
+#ifdef Q_OS_WIN
+QString XWinPDB::elemStructToString(ELEM_STRUCT elemStruct, OPTIONS *pOptions)
+{
+    QString sResult;
+
+    if(elemStruct.eType==ET_STRUCT)
+    {
+        sResult+=QString("%1\r\n").arg(elemStruct.sName);
+        sResult+=QString("{\r\n");
+
+        qint32 nNumberOfRecords=elemStruct.listRecords.count();
+
+        for(qint32 i=0;i<nNumberOfRecords;i++)
+        {
+            if(elemStruct.listRecords.at(i).eType==ET_DATA)
+            {
+                sResult+=QString("    %1;\r\n").arg(elemStruct.listRecords.at(i).sName);
+            }
+        }
+
+        sResult+=QString("};\r\n");
+    }
+
+    return sResult;
 }
 #endif
