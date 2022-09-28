@@ -43,6 +43,9 @@ public:
     struct OPTIONS
     {
         bool bFixTypes;
+        bool bShowComments;
+        bool bAddAlignment;
+        bool bFixOffsets;
     };
 
     struct PDB_INFO
@@ -77,13 +80,18 @@ public:
     enum ET
     {
         ET_UNKNOWN=0,
-        ET_BASETYPE,
         ET_STRUCT,
         ET_CLASS,
         ET_UNION,
+        ET_ENUM,
         ET_INTERFACE,
         ET_DATA,
-        ET_ARRAY
+        ET_FUNCTION,
+        ET_BASETYPE,
+        ET_ARRAYTYPE,
+        ET_POINTERTYPE,
+        ET_FUNCTIONTYPE,
+        ET_FUNCTIONARGTYPE
     };
 
     struct ELEM_STRUCT
@@ -92,6 +100,7 @@ public:
         qint32 nSize;
         ET eType;
         qint32 nOffset;
+        quint32 nID;
         QList<ELEM_STRUCT> listRecords;
     };
 
@@ -100,7 +109,7 @@ public:
 
     bool loadMSDIALibrary(QString sFileName);
     bool loadFile(QString sFileName);
-    virtual QString getName();
+    virtual QString getFileFormatName();
     virtual QString getArch();
     PDB_INFO getPdbInfo(PDSTRUCT *pPdStruct);
     void test();
@@ -109,6 +118,8 @@ private:
 #ifdef Q_OS_WIN
     void _testSymbol(IDiaSymbol *pSymbol);
     quint32 getNumberOfChildren(IDiaSymbol *pSymbol);
+    QString getSymbolName(IDiaSymbol *pSymbol);
+    QString handleFunctionArgs(IDiaSymbol *pSymbol,OPTIONS *pOptions,qint32 nLevel);
     IDiaSymbol *getSymbolById(quint32 nId);
     ELEM_STRUCT handleElement(quint32 nId,OPTIONS *pOptions);
     ELEM_STRUCT handleElement(IDiaSymbol *pSymbol,OPTIONS *pOptions,qint32 nLevel=0);

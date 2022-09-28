@@ -476,7 +476,7 @@ bool XWinPDB::loadFile(QString sFileName)
     return bResult;
 }
 
-QString XWinPDB::getName()
+QString XWinPDB::getFileFormatName()
 {
     QString sResult;
 #ifdef Q_OS_WIN
@@ -544,6 +544,67 @@ XWinPDB::PDB_INFO XWinPDB::getPdbInfo(PDSTRUCT *pPdStruct)
                     else if (nUDTKind==1)       result.listUDT_class.append(nID);
                     else if (nUDTKind==2)       result.listUDT_union.append(nID);
                     else if (nUDTKind==3)       result.listUDT_interface.append(nID);
+                }
+                else if(nSymTag==SymTagAnnotation)
+                {
+                    // TODO
+                }
+                else if(nSymTag==SymTagPublicSymbol)
+                {
+                    // TODO
+                }
+                else if(nSymTag==SymTagData)
+                {
+                    // TODO
+                }
+                else if(nSymTag==SymTagBaseType)
+                {
+                    // TODO
+                }
+                else if(nSymTag==SymTagPointerType)
+                {
+                    // TODO
+                }
+                else if(nSymTag==SymTagArrayType)
+                {
+                    // TODO
+                }
+                else if(nSymTag==SymTagFunctionType)
+                {
+                    // TODO
+                }
+                else if(nSymTag==SymTagFunctionArgType)
+                {
+                    // TODO
+                }
+                else if(nSymTag==SymTagEnum)
+                {
+                    // TODO
+                }
+                else if(nSymTag==SymTagFunction)
+                {
+                    // TODO !!!
+                }
+                else if(nSymTag==SymTagTypedef)
+                {
+                    // TODO !!!
+                }
+                else if(nSymTag==SymTagVTable)
+                {
+                    // TODO Check
+                }
+                else if(nSymTag==SymTagBaseClass)
+                {
+                    // TODO !!!
+                }
+                else
+                {
+//                    _testSymbol(pSymbol);
+                    qDebug("ID: %d Symtag: %d",nID,nSymTag);
+//                    _testSymbol(pSymbol);
+
+
+//                    break;
                 }
 
 //                if(!stTypes.contains(nSymTag))
@@ -658,6 +719,7 @@ void XWinPDB::test()
 //    quint32 v_symTag=_pdb_sym_get_symTag(g_pGlobal);
 
     OPTIONS options={};
+    options.bShowComments=true;
 
     PDSTRUCT pdStruct={};
 
@@ -696,7 +758,7 @@ void XWinPDB::_testSymbol(IDiaSymbol *pSymbol)
     BSTR strTest;
     BOOL bTest=0;
     IDiaSymbol *pSymbolTest=0;
-    VARIANT varTest;
+    VARIANT varTest={};
     GUID guidTest;
     BYTE bData[256];
     DWORD dwData[256];
@@ -965,6 +1027,69 @@ quint32 XWinPDB::getNumberOfChildren(IDiaSymbol *pSymbol)
 }
 #endif
 #ifdef Q_OS_WIN
+QString XWinPDB::getSymbolName(IDiaSymbol *pSymbol)
+{
+    QString sResult;
+
+    sResult=_pdb_sym_get_name(pSymbol);
+
+    if(sResult.contains("<unnamed-tag>"))
+    {
+        sResult=sResult.replace("<unnamed-tag>",QString("_unnamed_%1").arg(_pdb_sym_get_symIndexId(pSymbol)));
+    }
+    else if(sResult.contains("<anonymous-tag>"))
+    {
+        sResult=sResult.replace("<anonymous-tag>",QString("_anonymous_%1").arg(_pdb_sym_get_symIndexId(pSymbol)));
+    }
+
+    return sResult;
+}
+#endif
+#ifdef Q_OS_WIN
+QString XWinPDB::handleFunctionArgs(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint32 nLevel)
+{
+    QString sResult;
+
+    QList<ELEM_STRUCT> listArgs;
+
+    IDiaEnumSymbols *pEnumSymbols;
+    if(pSymbol->findChildren(SymTagNull,nullptr,nsNone,&pEnumSymbols)==S_OK)
+    {
+        IDiaSymbol *pRecord=nullptr;
+        ULONG celt=0;
+
+        while(SUCCEEDED(pEnumSymbols->Next(1,&pRecord,&celt))&&(celt==1))
+        {
+            ELEM_STRUCT record=handleElement(pRecord,pOptions,nLevel+1);
+
+            listArgs.append(record);
+
+            pRecord->Release();
+        }
+
+        pEnumSymbols->Release();
+    }
+
+    sResult+="(";
+
+    qint32 nNumberOfRecords=listArgs.count();
+
+    for(qint32 i=0;i<nNumberOfRecords;i++)
+    {
+        sResult+=listArgs.at(i).sName;
+
+        if(i!=(nNumberOfRecords-1))
+        {
+            sResult+=",";
+        }
+    }
+
+    sResult+=")";
+
+    return sResult;
+}
+#endif
+#ifdef Q_OS_WIN
 IDiaSymbol *XWinPDB::getSymbolById(quint32 nId)
 {
     IDiaSymbol *pResult=nullptr;
@@ -1004,9 +1129,9 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
 {
     ELEM_STRUCT result={};
 
+    result.nID=_pdb_sym_get_symIndexId(pSymbol);
+
     quint32 nSymTag=_pdb_sym_get_symTag(pSymbol);
-//    QString sName=_pdb_sym_get_name(pSymbol);
-//    quint32 nSize=_pdb_sym_get_length(pSymbol);
 
     if(nSymTag==SymTagData)
     {
@@ -1014,7 +1139,7 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
         // TODO get_dataKind
         // TODO get_locationType
 
-        QString sName=_pdb_sym_get_name(pSymbol);
+        QString sName=getSymbolName(pSymbol);
 
         IDiaSymbol *pType=_pdb_sym_get_type(pSymbol);
 
@@ -1022,24 +1147,21 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
         {
             ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
 
-            if(record.eType==ET_BASETYPE)
+            if(record.sName.contains("#NAME#"))
             {
-                result.sName=QString("%1 %2").arg(record.sName,sName);
-            }
-            else if(record.eType==ET_ARRAY)
-            {
-                result.sName=record.sName.replace("#NAME#",sName);
+                result.sName=record.sName.replace("#NAME#",sName).trimmed();
             }
             else
             {
-                result.sName=sName; // TODO fix
+                result.sName=QString("%1 %2").arg(record.sName,sName).trimmed();
             }
 
             result.nSize=record.nSize;
-            result.nOffset=_pdb_sym_get_offset(pSymbol);
 
             pType->Release();
         }
+
+        result.nOffset=_pdb_sym_get_offset(pSymbol);
     }
     else if(nSymTag==SymTagBaseType)
     {
@@ -1117,7 +1239,7 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
     {
         QString sType;
 
-        QString sName=_pdb_sym_get_name(pSymbol);
+        QString sName=getSymbolName(pSymbol);
         quint32 nKind=_pdb_sym_get_udtKind(pSymbol);
 
         if(nKind==0)
@@ -1146,12 +1268,41 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
     }
     else if(nSymTag==SymTagPointerType)
     {
-        _testSymbol(pSymbol);
-        qDebug("SymTagPointerType");
+        result.eType=ET_POINTERTYPE;
+        QString sRef;
+
+        if(_pdb_sym_get_reference(pSymbol))
+        {
+            sRef="&";
+        }
+        else
+        {
+            sRef="*";
+        }
+
+        IDiaSymbol *pType=_pdb_sym_get_type(pSymbol);
+
+        if(pType)
+        {
+            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+
+            if(record.sName.contains("#NAME#"))
+            {
+                result.sName=record.sName.replace("#NAME#",QString("%1 #NAME#").arg(sRef)).trimmed();
+            }
+            else
+            {
+                result.sName=QString("%1 %2").arg(record.sName,sRef);
+            }
+
+            pType->Release();
+        }
+
+        result.nSize=_pdb_sym_get_length(pSymbol);
     }
     else if(nSymTag==SymTagArrayType)
     {
-        result.eType=ET_ARRAY;
+        result.eType=ET_ARRAYTYPE;
         quint32 nCount=_pdb_sym_get_count(pSymbol);
         // TODO [x][y][z]...
         // TODO if nLimit > X then no prefix type
@@ -1172,18 +1323,68 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
     }
     else if(nSymTag==SymTagEnum)
     {
-        _testSymbol(pSymbol);
-        qDebug("SymTagEnum");
+        result.eType=ET_ENUM;
+        QString sName=getSymbolName(pSymbol);
+
+        result.sName=QString("enum %1").arg(sName);
+        result.nSize=_pdb_sym_get_length(pSymbol);
     }
     else if(nSymTag==SymTagFunctionType)
     {
-        _testSymbol(pSymbol);
-        qDebug("SymTagFunctionType");
+        result.eType=ET_FUNCTIONTYPE;
+        // TODO get_callingConvention
+
+        IDiaSymbol *pType=_pdb_sym_get_type(pSymbol);
+
+        if(pType)
+        {
+            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+
+            result.sName=QString("%1 (#NAME#)").arg(record.sName);
+            result.nSize=record.nSize;
+
+            pType->Release();
+        }
+
+        result.sName+=handleFunctionArgs(pSymbol,pOptions,nLevel+1);
+    }
+    else if(nSymTag==SymTagFunction)
+    {
+        result.eType=ET_FUNCTION;
+
+        result.sName=_pdb_sym_get_name(pSymbol);
+        result.nSize=_pdb_sym_get_length(pSymbol);
+        // TODO get_callingConvention
+
+        IDiaSymbol *pType=_pdb_sym_get_type(pSymbol);
+
+        if(pType)
+        {
+            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+
+            result.sName=QString("%1 %2").arg(record.sName,_pdb_sym_get_name(pSymbol));
+
+            pType->Release();
+        }
+
+        result.sName+=handleFunctionArgs(pSymbol,pOptions,nLevel+1);
     }
     else if(nSymTag==SymTagFunctionArgType)
     {
-        _testSymbol(pSymbol);
-        qDebug("SymTagFunctionArgType");
+        result.eType=ET_FUNCTIONARGTYPE;
+
+        IDiaSymbol *pType=_pdb_sym_get_type(pSymbol);
+
+        if(pType)
+        {
+            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+
+            result.sName=record.sName;
+
+            result.nSize=record.nSize;
+
+            pType->Release();
+        }
     }
     else
     {
@@ -1191,7 +1392,7 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
         qDebug("UnknownType: %d",nSymTag);
     }
 
-    if(nLevel==0)
+    if((nLevel==0)&&(result.eType!=ET_FUNCTIONTYPE))
     {
         IDiaEnumSymbols *pEnumSymbols;
         if(pSymbol->findChildren(SymTagNull,nullptr,nsNone,&pEnumSymbols)==S_OK)
@@ -1221,9 +1422,16 @@ QString XWinPDB::elemStructToString(ELEM_STRUCT elemStruct, OPTIONS *pOptions)
 {
     QString sResult;
 
-    if(elemStruct.eType==ET_STRUCT)
+    if((elemStruct.eType==ET_STRUCT)||(elemStruct.eType==ET_UNION))
     {
-        sResult+=QString("%1\r\n").arg(elemStruct.sName);
+        sResult+=elemStruct.sName;
+
+        if(pOptions->bShowComments)
+        {
+            sResult+=QString(" // Size=0x%1 (Id=%2)").arg(XBinary::valueToHexEx(elemStruct.nSize),QString::number(elemStruct.nID));
+        }
+
+        sResult+=QString("\r\n");
         sResult+=QString("{\r\n");
 
         qint32 nNumberOfRecords=elemStruct.listRecords.count();
@@ -1232,7 +1440,14 @@ QString XWinPDB::elemStructToString(ELEM_STRUCT elemStruct, OPTIONS *pOptions)
         {
             if(elemStruct.listRecords.at(i).eType==ET_DATA)
             {
-                sResult+=QString("    %1;\r\n").arg(elemStruct.listRecords.at(i).sName);
+                sResult+=QString("    %1;").arg(elemStruct.listRecords.at(i).sName);
+
+                if(pOptions->bShowComments)
+                {
+                    sResult+=QString(" // Offset=0x%1 Size=0x%2").arg(XBinary::valueToHexEx(elemStruct.listRecords.at(i).nOffset),XBinary::valueToHexEx(elemStruct.listRecords.at(i).nSize));
+                }
+
+                sResult+=QString("\r\n");
             }
         }
 
