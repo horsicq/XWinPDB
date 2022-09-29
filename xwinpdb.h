@@ -59,8 +59,10 @@ public:
         bool bIsCTypes;
         bool bIsStripped;
         QList<quint32> listCompiland;
-        QList<quint32> listData;
-        QList<quint32> listFunction;
+    };
+
+    struct PDB_STATS
+    {
         QList<quint32> listUDT_struct;
         QList<quint32> listUDT_class;
         QList<quint32> listUDT_union;
@@ -68,13 +70,6 @@ public:
         QList<quint32> listTypeDef;
         QList<quint32> listPublicSymbol;
         QList<quint32> listEnum;
-        QList<quint32> listPointerType;
-        QList<quint32> listBaseClass;
-        QList<quint32> listFunctionType;
-        QList<quint32> listArrayType;
-        QList<quint32> listVTable;
-        QList<quint32> listFunctionArgType;
-        QList<quint32> listBaseType;
     };
 
     enum ET
@@ -94,14 +89,26 @@ public:
         ET_FUNCTIONARGTYPE
     };
 
-    struct ELEM_STRUCT
+    struct ELEMTYPE
     {
         QString sName;
         qint32 nSize;
         ET eType;
         qint32 nOffset;
         quint32 nID;
-        QList<ELEM_STRUCT> listRecords;
+        QList<ELEMTYPE> listRecords;
+    };
+
+    struct TNODE
+    {
+        QString sGUID;
+        QString sName;
+        qint32 nSize;
+        qint32 nOffset;
+        quint32 nID;
+        bool bShowType;
+        QList<QString> listPrev;
+        QList<QString> listNext;
     };
 
     XWinPDB(QIODevice *pDevice);
@@ -111,8 +118,10 @@ public:
     bool loadFile(QString sFileName);
     virtual QString getFileFormatName();
     virtual QString getArch();
-    PDB_INFO getPdbInfo(PDSTRUCT *pPdStruct);
+    PDB_INFO getPdbInfo();
+    PDB_STATS getPdbStats(PDSTRUCT *pPdStruct);
     void test();
+    QString tabString(qint32 nLevel);
 
 private:
 #ifdef Q_OS_WIN
@@ -121,9 +130,9 @@ private:
     QString getSymbolName(IDiaSymbol *pSymbol);
     QString handleFunctionArgs(IDiaSymbol *pSymbol,OPTIONS *pOptions,qint32 nLevel);
     IDiaSymbol *getSymbolById(quint32 nId);
-    ELEM_STRUCT handleElement(quint32 nId,OPTIONS *pOptions);
-    ELEM_STRUCT handleElement(IDiaSymbol *pSymbol,OPTIONS *pOptions,qint32 nLevel=0);
-    QString elemStructToString(ELEM_STRUCT elemStruct,OPTIONS *pOptions);
+    ELEMTYPE handleType(quint32 nId,OPTIONS *pOptions);
+    ELEMTYPE handleType(IDiaSymbol *pSymbol,OPTIONS *pOptions,qint32 nLevel=0);
+    QString elemTypeToString(ELEMTYPE elemType,OPTIONS *pOptions);
 #endif
 private:
 #ifdef Q_OS_WIN

@@ -497,7 +497,7 @@ QString XWinPDB::getArch()
 #endif
 }
 
-XWinPDB::PDB_INFO XWinPDB::getPdbInfo(PDSTRUCT *pPdStruct)
+XWinPDB::PDB_INFO XWinPDB::getPdbInfo()
 {
     PDB_INFO result={};
 #ifdef Q_OS_WIN
@@ -509,6 +509,14 @@ XWinPDB::PDB_INFO XWinPDB::getPdbInfo(PDSTRUCT *pPdStruct)
     result.nSignature=_pdb_sym_get_signature(g_pGlobal);
     result.bIsCTypes=_pdb_sym_get_isCTypes(g_pGlobal);
     result.bIsStripped=_pdb_sym_get_isStripped(g_pGlobal);
+#endif
+    return result;
+}
+
+XWinPDB::PDB_STATS XWinPDB::getPdbStats(PDSTRUCT *pPdStruct)
+{
+    PDB_STATS result={};
+#ifdef Q_OS_WIN
 
     IDiaEnumSymbols *pEnumSymbols=nullptr;
 
@@ -532,11 +540,7 @@ XWinPDB::PDB_INFO XWinPDB::getPdbInfo(PDSTRUCT *pPdStruct)
                 quint32 nSymTag=_pdb_sym_get_symTag(pSymbol);
                 quint32 nID=_pdb_sym_get_symIndexId(pSymbol);
 
-                if(nSymTag==SymTagCompiland)
-                {
-                    result.listCompiland.append(nSymTag);
-                }
-                else if(nSymTag==SymTagUDT)
+                if(nSymTag==SymTagUDT)
                 {
                     quint32 nUDTKind=_pdb_sym_get_udtKind(pSymbol);
 
@@ -545,83 +549,20 @@ XWinPDB::PDB_INFO XWinPDB::getPdbInfo(PDSTRUCT *pPdStruct)
                     else if (nUDTKind==2)       result.listUDT_union.append(nID);
                     else if (nUDTKind==3)       result.listUDT_interface.append(nID);
                 }
-                else if(nSymTag==SymTagAnnotation)
-                {
-                    // TODO
-                }
                 else if(nSymTag==SymTagPublicSymbol)
                 {
-                    // TODO
-                }
-                else if(nSymTag==SymTagData)
-                {
-                    // TODO
-                }
-                else if(nSymTag==SymTagBaseType)
-                {
-                    // TODO
-                }
-                else if(nSymTag==SymTagPointerType)
-                {
-                    // TODO
-                }
-                else if(nSymTag==SymTagArrayType)
-                {
-                    // TODO
-                }
-                else if(nSymTag==SymTagFunctionType)
-                {
-                    // TODO
-                }
-                else if(nSymTag==SymTagFunctionArgType)
-                {
-                    // TODO
+                    result.listPublicSymbol.append(nID);
                 }
                 else if(nSymTag==SymTagEnum)
                 {
-                    // TODO
-                }
-                else if(nSymTag==SymTagFunction)
-                {
-                    // TODO !!!
+                    result.listEnum.append(nID);
                 }
                 else if(nSymTag==SymTagTypedef)
                 {
-                    // TODO !!!
-                }
-                else if(nSymTag==SymTagVTable)
-                {
-                    // TODO Check
-                }
-                else if(nSymTag==SymTagBaseClass)
-                {
-                    // TODO !!!
-                }
-                else
-                {
-//                    _testSymbol(pSymbol);
-                    qDebug("ID: %d Symtag: %d",nID,nSymTag);
-//                    _testSymbol(pSymbol);
-
-
-//                    break;
+                    result.listTypeDef.append(nID);
                 }
 
-//                if(!stTypes.contains(nSymTag))
-//                {
-//                    _testSymbol(pSymbol);
-
-//                    stTypes.insert(nSymTag);
-//                }
-
-//                if(nSymTag==SymTagCompiland)
-//                {
-//                    _testSymbol(pSymbol);
-//                }
-//                else
-//                {
-//                    qDebug("%d",nSymTag);
-//                }
+//                qDebug("%d %d",nID,nSymTag);
 
                 pSymbol->Release();
 
@@ -720,20 +661,23 @@ void XWinPDB::test()
 
     OPTIONS options={};
     options.bShowComments=true;
+    options.bFixOffsets=true;
 
     PDSTRUCT pdStruct={};
 
-    PDB_INFO pdbInfo=getPdbInfo(&pdStruct);
+    PDB_STATS pdbInfo=getPdbStats(&pdStruct);
 
     qint32 nNumberOfRecords=pdbInfo.listUDT_struct.count();
 
     for(qint32 i=0;i<nNumberOfRecords;i++)
     {
-        ELEM_STRUCT udtStruct=handleElement(pdbInfo.listUDT_struct.at(i),&options);
-        QString sRecord=elemStructToString(udtStruct,&options);
+        if(pdbInfo.listUDT_struct.at(i)==31174)
+        {
+            ELEMTYPE udtStruct=handleType(pdbInfo.listUDT_struct.at(i),&options);
+            QString sRecord=elemTypeToString(udtStruct,&options);
 
-        qDebug("%s",sRecord.toLatin1().data());
-
+            qDebug("%s",sRecord.toLatin1().data());
+        }
 //        break;
     }
 
@@ -748,6 +692,18 @@ void XWinPDB::test()
 
 //    _testSymbol(g_pGlobal);
 #endif
+}
+
+QString XWinPDB::tabString(qint32 nLevel)
+{
+    QString sResult;
+
+    for(qint32 i=0;i<nLevel;i++)
+    {
+        sResult+="    ";
+    }
+
+    return sResult;
 }
 #ifdef Q_OS_WIN
 void XWinPDB::_testSymbol(IDiaSymbol *pSymbol)
@@ -1050,7 +1006,7 @@ QString XWinPDB::handleFunctionArgs(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint
 {
     QString sResult;
 
-    QList<ELEM_STRUCT> listArgs;
+    QList<ELEMTYPE> listArgs;
 
     IDiaEnumSymbols *pEnumSymbols;
     if(pSymbol->findChildren(SymTagNull,nullptr,nsNone,&pEnumSymbols)==S_OK)
@@ -1060,7 +1016,7 @@ QString XWinPDB::handleFunctionArgs(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint
 
         while(SUCCEEDED(pEnumSymbols->Next(1,&pRecord,&celt))&&(celt==1))
         {
-            ELEM_STRUCT record=handleElement(pRecord,pOptions,nLevel+1);
+            ELEMTYPE record=handleType(pRecord,pOptions,nLevel+1);
 
             listArgs.append(record);
 
@@ -1108,15 +1064,15 @@ IDiaSymbol *XWinPDB::getSymbolById(quint32 nId)
 }
 #endif
 #ifdef Q_OS_WIN
-XWinPDB::ELEM_STRUCT XWinPDB::handleElement(quint32 nId,OPTIONS *pOptions)
+XWinPDB::ELEMTYPE XWinPDB::handleType(quint32 nId,OPTIONS *pOptions)
 {
-    ELEM_STRUCT result={};
+    ELEMTYPE result={};
 
     IDiaSymbol *pSymbol=getSymbolById(nId);
 
     if(pSymbol)
     {
-        result=handleElement(pSymbol,pOptions,0);
+        result=handleType(pSymbol,pOptions,0);
 
         pSymbol->Release();
     }
@@ -1125,9 +1081,9 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(quint32 nId,OPTIONS *pOptions)
 }
 #endif
 #ifdef Q_OS_WIN
-XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint32 nLevel)
+XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint32 nLevel)
 {
-    ELEM_STRUCT result={};
+    ELEMTYPE result={};
 
     result.nID=_pdb_sym_get_symIndexId(pSymbol);
 
@@ -1145,7 +1101,7 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
 
         if(pType)
         {
-            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+            ELEMTYPE record=handleType(pType,pOptions,nLevel+1);
 
             if(record.sName.contains("#NAME#"))
             {
@@ -1284,7 +1240,7 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
 
         if(pType)
         {
-            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+            ELEMTYPE record=handleType(pType,pOptions,nLevel+1);
 
             if(record.sName.contains("#NAME#"))
             {
@@ -1312,7 +1268,7 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
 
         if(pType)
         {
-            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+            ELEMTYPE record=handleType(pType,pOptions,nLevel+1);
 
             result.sName=QString("%1 #NAME#[%2]").arg(record.sName,QString::number(nCount));
             result.nSize=nCount*record.nSize;
@@ -1338,7 +1294,7 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
 
         if(pType)
         {
-            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+            ELEMTYPE record=handleType(pType,pOptions,nLevel+1);
 
             result.sName=QString("%1 (#NAME#)").arg(record.sName);
             result.nSize=record.nSize;
@@ -1360,7 +1316,7 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
 
         if(pType)
         {
-            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+            ELEMTYPE record=handleType(pType,pOptions,nLevel+1);
 
             result.sName=QString("%1 %2").arg(record.sName,_pdb_sym_get_name(pSymbol));
 
@@ -1377,7 +1333,7 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
 
         if(pType)
         {
-            ELEM_STRUCT record=handleElement(pType,pOptions,nLevel+1);
+            ELEMTYPE record=handleType(pType,pOptions,nLevel+1);
 
             result.sName=record.sName;
 
@@ -1403,7 +1359,7 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
             while(SUCCEEDED(pEnumSymbols->Next(1,&pRecord,&celt))&&(celt==1))
             {
     //                _testSymbol(pSymbol);
-                ELEM_STRUCT record=handleElement(pRecord,pOptions,nLevel+1);
+                ELEMTYPE record=handleType(pRecord,pOptions,nLevel+1);
 
                 result.listRecords.append(record);
 
@@ -1418,40 +1374,181 @@ XWinPDB::ELEM_STRUCT XWinPDB::handleElement(IDiaSymbol *pSymbol, OPTIONS *pOptio
 }
 #endif
 #ifdef Q_OS_WIN
-QString XWinPDB::elemStructToString(ELEM_STRUCT elemStruct, OPTIONS *pOptions)
+QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
 {
+    // TODO hide fix offset and add alignment for classes
     QString sResult;
 
-    if((elemStruct.eType==ET_STRUCT)||(elemStruct.eType==ET_UNION))
+    if((elemType.eType==ET_STRUCT)||(elemType.eType==ET_UNION))
     {
-        sResult+=elemStruct.sName;
+        QList<TNODE> listNodes;
 
-        if(pOptions->bShowComments)
         {
-            sResult+=QString(" // Size=0x%1 (Id=%2)").arg(XBinary::valueToHexEx(elemStruct.nSize),QString::number(elemStruct.nID));
+            TNODE record={};
+
+            record.nID=0;
+            record.nOffset=0;
+            record.nSize=0;
+
+            if(elemType.eType==ET_STRUCT)
+            {
+                record.sName="#BEGIN_STRUCT#";
+            }
+            else if(elemType.eType==ET_UNION)
+            {
+                record.sName="#BEGIN_UNION#";
+            }
+
+            if((pOptions->bFixOffsets)||(pOptions->bAddAlignment))
+            {
+                record.sGUID=XBinary::generateUUID();
+            }
+
+            listNodes.append(record);
         }
 
-        sResult+=QString("\r\n");
-        sResult+=QString("{\r\n");
-
-        qint32 nNumberOfRecords=elemStruct.listRecords.count();
-
-        for(qint32 i=0;i<nNumberOfRecords;i++)
         {
-            if(elemStruct.listRecords.at(i).eType==ET_DATA)
-            {
-                sResult+=QString("    %1;").arg(elemStruct.listRecords.at(i).sName);
+            qint32 nNumberOfRecords=elemType.listRecords.count();
 
-                if(pOptions->bShowComments)
+            for(qint32 i=0;i<nNumberOfRecords;i++)
+            {
+                TNODE record={};
+
+                record.nID=elemType.listRecords.at(i).nID;
+                record.nOffset=elemType.listRecords.at(i).nOffset;
+                record.nSize=elemType.listRecords.at(i).nSize;
+                record.sName=elemType.listRecords.at(i).sName;
+
+                if((pOptions->bFixOffsets)||(pOptions->bAddAlignment))
                 {
-                    sResult+=QString(" // Offset=0x%1 Size=0x%2").arg(XBinary::valueToHexEx(elemStruct.listRecords.at(i).nOffset),XBinary::valueToHexEx(elemStruct.listRecords.at(i).nSize));
+                    record.sGUID=XBinary::generateUUID();
                 }
 
-                sResult+=QString("\r\n");
+                listNodes.append(record);
             }
         }
 
-        sResult+=QString("};\r\n");
+        {
+            TNODE record={};
+
+            record.nID=0;
+            record.nOffset=elemType.nSize;
+            record.nSize=0;
+
+            record.sName="#END#";
+
+            if((pOptions->bFixOffsets)||(pOptions->bAddAlignment))
+            {
+                record.sGUID=XBinary::generateUUID();
+            }
+
+            listNodes.append(record);
+        }
+
+        if(pOptions->bFixOffsets)
+        {
+            {
+                qint32 nNumberOfRecords=listNodes.count();
+
+                for(qint32 i=0;i<nNumberOfRecords;i++)
+                {
+                    for(qint32 j=0;j<nNumberOfRecords;j++)
+                    {
+                        if(i!=j)
+                        {
+                            if((listNodes[i].nOffset+listNodes[i].nSize)==listNodes[j].nOffset)
+                            {
+                                listNodes[i].listNext.append(listNodes.at(j).sGUID);
+                            }
+
+                            if((listNodes[j].nOffset+listNodes[j].nSize)==listNodes[i].nOffset)
+                            {
+                                listNodes[i].listPrev.append(listNodes.at(j).sGUID);
+                            }
+                        }
+                    }
+                }
+            }
+
+            {
+                bool bFix=false;
+
+                do
+                {
+                    qint32 nNumberOfRecords=listNodes.count();
+
+                    for(qint32 i=0;i<nNumberOfRecords;i++)
+                    {
+                        if((listNodes.at(i).listNext.count()>1)&&(listNodes.at(i).sName!="#BEGIN_UNION#"))
+                        {
+                            qDebug("Fix offset");
+                            // Add new Record
+                        }
+
+                        if((listNodes.at(i).listPrev.count()>1)&&(listNodes.at(i).sName!="#END_UNION#"))
+                        {
+                            qDebug("Fix offset end");
+                        }
+                    }
+                }
+                while(bFix);
+            }
+        }
+
+        // TODO
+
+        sResult+=elemType.sName;
+
+        if(pOptions->bShowComments)
+        {
+            sResult+=QString(" // Size=0x%1 (Id=%2)").arg(XBinary::valueToHexEx(elemType.nSize),QString::number(elemType.nID));
+        }
+
+        sResult+=QString("\r\n");
+
+        qint32 nLevel=0;
+        qint32 nNumberOfRecords=listNodes.count();
+
+        for(qint32 i=0;i<nNumberOfRecords;i++)
+        {
+            if(listNodes.at(i).sName.contains("#BEGIN_"))
+            {
+                sResult+=tabString(nLevel);
+
+                if(listNodes.at(i).bShowType)
+                {
+                    if(listNodes.at(i).sName=="#BEGIN_STRUCT#")
+                    {
+                        sResult+="struct";
+                    }
+                    else if(listNodes.at(i).sName=="#BEGIN_UNION#")
+                    {
+                        sResult+="union";
+                    }
+                }
+
+                sResult+="{";
+                nLevel++;
+            }
+            else if(listNodes.at(i).sName.contains("#END"))
+            {
+                nLevel--;
+                sResult+=tabString(nLevel);
+                sResult+="}";
+            }
+            else
+            {
+                sResult+=tabString(nLevel);
+                sResult+=listNodes.at(i).sName;
+
+                if(pOptions->bShowComments)
+                {
+                    sResult+=QString(" // Offset=0x%1 Size=0x%2").arg(XBinary::valueToHexEx(listNodes.at(i).nOffset),XBinary::valueToHexEx(listNodes.at(i).nSize));
+                }
+            }
+
+            sResult+=QString("\r\n");
+        }
     }
 
     return sResult;
