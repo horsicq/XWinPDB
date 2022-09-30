@@ -107,6 +107,11 @@ public:
         qint32 nOffset;
         quint32 nID;
         bool bShowType;
+        bool bIsBegin;
+        bool bIsEnd;
+        bool bIsStruct;
+        bool bIsUnion;
+        qint32 nStructSize;
         QList<QString> listPrev;
         QList<QString> listNext;
     };
@@ -134,6 +139,7 @@ private:
     ELEMTYPE handleType(IDiaSymbol *pSymbol,OPTIONS *pOptions,qint32 nLevel=0);
     QString elemTypeToString(ELEMTYPE elemType,OPTIONS *pOptions);
 #endif
+    void _addStringRecord(QString *pString,QList<TNODE> *pListNodes,qint32 nIndex,qint32 *pnLevel,OPTIONS *pOptions);
 private:
 #ifdef Q_OS_WIN
     IDiaDataSource *g_pDiaDataSource;

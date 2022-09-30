@@ -1389,15 +1389,18 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
             record.nID=0;
             record.nOffset=0;
             record.nSize=0;
+            record.bIsBegin=true;
 
             if(elemType.eType==ET_STRUCT)
             {
-                record.sName="#BEGIN_STRUCT#";
+                record.bIsStruct=true;
             }
             else if(elemType.eType==ET_UNION)
             {
-                record.sName="#BEGIN_UNION#";
+                record.bIsUnion=true;
             }
+
+            record.nStructSize=elemType.nSize;
 
             if((pOptions->bFixOffsets)||(pOptions->bAddAlignment))
             {
@@ -1434,8 +1437,17 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
             record.nID=0;
             record.nOffset=elemType.nSize;
             record.nSize=0;
+            record.bIsEnd=true;
 
-            record.sName="#END#";
+            if(elemType.eType==ET_STRUCT)
+            {
+                record.bIsStruct=true;
+            }
+            else if(elemType.eType==ET_UNION)
+            {
+                record.bIsUnion=true;
+            }
+            record.nStructSize=elemType.nSize;
 
             if((pOptions->bFixOffsets)||(pOptions->bAddAlignment))
             {
@@ -1445,7 +1457,7 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
             listNodes.append(record);
         }
 
-        if(pOptions->bFixOffsets)
+        if((pOptions->bFixOffsets)||(pOptions->bAddAlignment))
         {
             {
                 qint32 nNumberOfRecords=listNodes.count();
@@ -1456,6 +1468,7 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
                     {
                         if(i!=j)
                         {
+                            // TODO bit fields
                             if((listNodes[i].nOffset+listNodes[i].nSize)==listNodes[j].nOffset)
                             {
                                 listNodes[i].listNext.append(listNodes.at(j).sGUID);
@@ -1470,6 +1483,14 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
                 }
             }
 
+            // TODO
+            if(pOptions->bFixOffsets)
+            {
+                // TODO fix bit members
+                // TODO bIsBitStruct
+            }
+
+            if(pOptions->bFixOffsets)
             {
                 bool bFix=false;
 
@@ -1479,23 +1500,36 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
 
                     for(qint32 i=0;i<nNumberOfRecords;i++)
                     {
-                        if((listNodes.at(i).listNext.count()>1)&&(listNodes.at(i).sName!="#BEGIN_UNION#"))
+                        if((listNodes.at(i).listNext.count()>1)&&(!listNodes.at(i).bIsUnion))
                         {
                             qDebug("Fix offset");
+
+                            // Get size;
+
+
+
                             // Add new Record
                         }
 
-                        if((listNodes.at(i).listPrev.count()>1)&&(listNodes.at(i).sName!="#END_UNION#"))
-                        {
-                            qDebug("Fix offset end");
-                        }
+//                        if((listNodes.at(i).listPrev.count()>1)&&(!listNodes.at(i).bIsUnion))
+//                        {
+//                            qDebug("Fix offset end");
+//                        }
                     }
                 }
                 while(bFix);
             }
-        }
 
-        // TODO
+            if(pOptions->bAddAlignment)
+            {
+                // TODO
+            }
+            else
+            {
+                // TODO
+                // Find next
+            }
+        }
 
         sResult+=elemType.sName;
 
@@ -1507,50 +1541,68 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
         sResult+=QString("\r\n");
 
         qint32 nLevel=0;
-        qint32 nNumberOfRecords=listNodes.count();
 
-        for(qint32 i=0;i<nNumberOfRecords;i++)
+        if(pOptions->bFixOffsets)
         {
-            if(listNodes.at(i).sName.contains("#BEGIN_"))
+            qint32 nNumberOfRecords=listNodes.count();
+
+            for(qint32 i=0;i<nNumberOfRecords;i++)
             {
-                sResult+=tabString(nLevel);
-
-                if(listNodes.at(i).bShowType)
-                {
-                    if(listNodes.at(i).sName=="#BEGIN_STRUCT#")
-                    {
-                        sResult+="struct";
-                    }
-                    else if(listNodes.at(i).sName=="#BEGIN_UNION#")
-                    {
-                        sResult+="union";
-                    }
-                }
-
-                sResult+="{";
-                nLevel++;
+                _addStringRecord(&sResult,&listNodes,i,&nLevel,pOptions);
             }
-            else if(listNodes.at(i).sName.contains("#END"))
+        }
+        else
+        {
+            qint32 nNumberOfRecords=listNodes.count();
+
+            for(qint32 i=0;i<nNumberOfRecords;i++)
             {
-                nLevel--;
-                sResult+=tabString(nLevel);
-                sResult+="}";
+                _addStringRecord(&sResult,&listNodes,i,&nLevel,pOptions);
             }
-            else
-            {
-                sResult+=tabString(nLevel);
-                sResult+=listNodes.at(i).sName;
-
-                if(pOptions->bShowComments)
-                {
-                    sResult+=QString(" // Offset=0x%1 Size=0x%2").arg(XBinary::valueToHexEx(listNodes.at(i).nOffset),XBinary::valueToHexEx(listNodes.at(i).nSize));
-                }
-            }
-
-            sResult+=QString("\r\n");
         }
     }
 
     return sResult;
 }
 #endif
+void XWinPDB::_addStringRecord(QString *pString, QList<TNODE> *pListNodes, qint32 nIndex, qint32 *pnLevel, OPTIONS *pOptions)
+{
+    if(pListNodes->at(nIndex).bIsBegin)
+    {
+        *pString+=tabString(*pnLevel);
+
+        if(pListNodes->at(nIndex).bShowType)
+        {
+            if(pListNodes->at(nIndex).bIsStruct)
+            {
+                *pString+="struct";
+            }
+            else if(pListNodes->at(nIndex).bIsUnion)
+            {
+                *pString+="union";
+            }
+        }
+
+        *pString+="{";
+        (*pnLevel)++;
+    }
+    else if(pListNodes->at(nIndex).bIsEnd)
+    {
+        (*pnLevel)--;
+        *pString+=tabString(*pnLevel);
+        *pString+="}";
+    }
+    else
+    {
+        *pString+=tabString(*pnLevel);
+        *pString+=pListNodes->at(nIndex).sName;
+
+        if(pOptions->bShowComments)
+        {
+            *pString+=QString(" // Offset=0x%1 Size=0x%2").arg(XBinary::valueToHexEx(pListNodes->at(nIndex).nOffset),XBinary::valueToHexEx(pListNodes->at(nIndex).nSize));
+        }
+    }
+
+    *pString+=QString("\r\n");
+}
+
