@@ -1438,6 +1438,7 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
             record.nOffset=elemType.nSize;
             record.nSize=0;
             record.bIsEnd=true;
+            record.nStructSize=elemType.nSize;
 
             if(elemType.eType==ET_STRUCT)
             {
@@ -1447,7 +1448,6 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
             {
                 record.bIsUnion=true;
             }
-            record.nStructSize=elemType.nSize;
 
             if((pOptions->bFixOffsets)||(pOptions->bAddAlignment))
             {
@@ -1500,13 +1500,32 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
 
                     for(qint32 i=0;i<nNumberOfRecords;i++)
                     {
-                        if((listNodes.at(i).listNext.count()>1)&&(!listNodes.at(i).bIsUnion))
+                        qint32 nNumberOfNextRecords=listNodes.at(i).listNext.count();
+
+                        if((nNumberOfNextRecords>1)&&(!listNodes.at(i).bIsUnion))
                         {
                             qDebug("Fix offset");
 
-                            // Get size;
+                            // Get maximum size
+                            qint32 nMaxSize=0;
 
+                            for(int j=0;j<nNumberOfNextRecords;j++)
+                            {
+                                qint32 nIndex=_findTNodeByGuid(&listNodes,listNodes.at(i).sGUID);
 
+                                if(nIndex!=-1)
+                                {
+                                    nMaxSize=qMax(listNodes.at(i).nSize,nMaxSize);
+                                    nMaxSize=qMax(listNodes.at(i).nStructSize,nMaxSize);
+                                }
+                            }
+
+                            if(!nMaxSize)
+                            {
+                                qDebug("Max size = 0");
+                            }
+
+                            // Remove prevs
 
                             // Add new Record
                         }
@@ -1604,5 +1623,24 @@ void XWinPDB::_addStringRecord(QString *pString, QList<TNODE> *pListNodes, qint3
     }
 
     *pString+=QString("\r\n");
+}
+
+qint32 XWinPDB::_findTNodeByGuid(QList<TNODE> *pListNodes, QString sGUID)
+{
+    qint32 nResult=-1;
+
+    qint32 nNumberOfRecords=pListNodes->count();
+
+    for(qint32 i=0;i<nNumberOfRecords;i++)
+    {
+        if(pListNodes->at(i).sGUID==sGUID)
+        {
+            nResult=i;
+
+            break;
+        }
+    }
+
+    return nResult;
 }
 

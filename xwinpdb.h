@@ -140,6 +140,7 @@ private:
     QString elemTypeToString(ELEMTYPE elemType,OPTIONS *pOptions);
 #endif
     void _addStringRecord(QString *pString,QList<TNODE> *pListNodes,qint32 nIndex,qint32 *pnLevel,OPTIONS *pOptions);
+    qint32 _findTNodeByGuid(QList<TNODE> *pListNodes,QString sGUID);
 private:
 #ifdef Q_OS_WIN
     IDiaDataSource *g_pDiaDataSource;
