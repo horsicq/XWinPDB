@@ -989,6 +989,7 @@ QString XWinPDB::getSymbolName(IDiaSymbol *pSymbol)
 
     sResult=_pdb_sym_get_name(pSymbol);
 
+    // TODO Check more
     if(sResult.contains("<unnamed-tag>"))
     {
         sResult=sResult.replace("<unnamed-tag>",QString("_unnamed_%1").arg(_pdb_sym_get_symIndexId(pSymbol)));
