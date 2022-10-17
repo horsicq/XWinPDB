@@ -522,11 +522,13 @@ XWinPDB::PDB_STATS XWinPDB::getPdbStats(PDSTRUCT *pPdStruct)
 
     qint32 nCurrent=0;
 
+    qint32 _nFreeIndex=XBinary::getFreeIndex(pPdStruct);
+
     if(g_pGlobal->findChildren(SymTagNull,nullptr,nsNone,&pEnumSymbols)==S_OK)
     {
         quint32 nCount=_pdb_sym_get_Count(pEnumSymbols);
 
-        setPdStructTotal(pPdStruct,nCount);
+        setPdStructTotal(pPdStruct,_nFreeIndex,nCount);
 
 //        QSet<quint32> stTypes;
 
@@ -567,14 +569,14 @@ XWinPDB::PDB_STATS XWinPDB::getPdbStats(PDSTRUCT *pPdStruct)
                 pSymbol->Release();
 
                 nCurrent++;
-                setPdStructCurrent(pPdStruct,nCurrent);
+                setPdStructCurrent(pPdStruct,_nFreeIndex,nCurrent);
             }
         }
 
         pEnumSymbols->Release();
     }
 
-    setPdStructFinished(pPdStruct);
+    setPdStructFinished(pPdStruct,_nFreeIndex);
 
 //                    SYMBOL_RECORD record={};
 //                    BSTR bstring=nullptr;
