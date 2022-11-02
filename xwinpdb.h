@@ -121,7 +121,7 @@ public:
 
     bool loadMSDIALibrary(QString sFileName);
     bool loadFile(QString sFileName);
-    virtual QString getFileFormatName();
+    virtual QString getFileFormatString();
     virtual QString getArch();
     PDB_INFO getPdbInfo();
     PDB_STATS getPdbStats(PDSTRUCT *pPdStruct);

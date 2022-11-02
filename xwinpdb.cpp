@@ -476,7 +476,7 @@ bool XWinPDB::loadFile(QString sFileName)
     return bResult;
 }
 
-QString XWinPDB::getFileFormatName()
+QString XWinPDB::getFileFormatString()
 {
     QString sResult;
 #ifdef Q_OS_WIN
