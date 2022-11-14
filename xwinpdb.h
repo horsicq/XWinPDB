@@ -21,35 +21,33 @@
 #ifndef XWINPDB_H
 #define XWINPDB_H
 
-#include <QObject>
 #include <QIODevice>
+#include <QObject>
+
 #include "xpe.h"
 #include "xwinpdb_def.h"
 
 #ifdef Q_OS_WIN32
 #include <windows.h>
+
+#include "cvConst.h"
 #include "dia2.h"
 #include "diaCreate.h"
-#include "cvConst.h"
 #include "diacreate.h"
 #endif
 
-class XWinPDB: public XBinary
-{
+class XWinPDB : public XBinary {
     Q_OBJECT
 
 public:
-
-    struct OPTIONS
-    {
+    struct OPTIONS {
         bool bFixTypes;
         bool bShowComments;
         bool bAddAlignment;
         bool bFixOffsets;
     };
 
-    struct PDB_INFO
-    {
+    struct PDB_INFO {
         QString sName;
         QString sGUID;
         QString sFileName;
@@ -61,8 +59,7 @@ public:
         QList<quint32> listCompiland;
     };
 
-    struct PDB_STATS
-    {
+    struct PDB_STATS {
         QList<quint32> listUDT_struct;
         QList<quint32> listUDT_class;
         QList<quint32> listUDT_union;
@@ -72,9 +69,8 @@ public:
         QList<quint32> listEnum;
     };
 
-    enum ET
-    {
-        ET_UNKNOWN=0,
+    enum ET {
+        ET_UNKNOWN = 0,
         ET_STRUCT,
         ET_CLASS,
         ET_UNION,
@@ -89,8 +85,7 @@ public:
         ET_FUNCTIONARGTYPE
     };
 
-    struct ELEMTYPE
-    {
+    struct ELEMTYPE {
         QString sName;
         qint32 nSize;
         ET eType;
@@ -99,8 +94,7 @@ public:
         QList<ELEMTYPE> listRecords;
     };
 
-    struct TNODE
-    {
+    struct TNODE {
         QString sGUID;
         QString sName;
         qint32 nSize;
@@ -133,14 +127,15 @@ private:
     void _testSymbol(IDiaSymbol *pSymbol);
     quint32 getNumberOfChildren(IDiaSymbol *pSymbol);
     QString getSymbolName(IDiaSymbol *pSymbol);
-    QString handleFunctionArgs(IDiaSymbol *pSymbol,OPTIONS *pOptions,qint32 nLevel);
+    QString handleFunctionArgs(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint32 nLevel);
     IDiaSymbol *getSymbolById(quint32 nId);
-    ELEMTYPE handleType(quint32 nId,OPTIONS *pOptions);
-    ELEMTYPE handleType(IDiaSymbol *pSymbol,OPTIONS *pOptions,qint32 nLevel=0);
-    QString elemTypeToString(ELEMTYPE elemType,OPTIONS *pOptions);
+    ELEMTYPE handleType(quint32 nId, OPTIONS *pOptions);
+    ELEMTYPE handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint32 nLevel = 0);
+    QString elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions);
 #endif
-    void _addStringRecord(QString *pString,QList<TNODE> *pListNodes,qint32 nIndex,qint32 *pnLevel,OPTIONS *pOptions);
-    qint32 _findTNodeByGuid(QList<TNODE> *pListNodes,QString sGUID);
+    void _addStringRecord(QString *pString, QList<TNODE> *pListNodes, qint32 nIndex, qint32 *pnLevel, OPTIONS *pOptions);
+    qint32 _findTNodeByGuid(QList<TNODE> *pListNodes, QString sGUID);
+
 private:
 #ifdef Q_OS_WIN
     IDiaDataSource *g_pDiaDataSource;
@@ -149,4 +144,4 @@ private:
 #endif
 };
 
-#endif // XWINPDB_H
+#endif  // XWINPDB_H

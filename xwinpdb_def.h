@@ -21,19 +21,17 @@
 #ifndef XWINPDB_DEF_H
 #define XWINPDB_DEF_H
 
-#pragma comment(lib,"Advapi32.lib")
-#pragma comment(lib,"OleAut32.lib")
+#pragma comment(lib, "Advapi32.lib")
+#pragma comment(lib, "OleAut32.lib")
 
-#include <QtGlobal>
 #include <QString>
+#include <QtGlobal>
 
-namespace XWINPDB_DEF
-{
-    struct OBJECTRECORD
-    {
-        quint64 nID;
-        qint64 nOffset;
-        bool bIsFree;
-    };
-}
-#endif // XWINPDB_DEF_H
+namespace XWINPDB_DEF {
+struct OBJECTRECORD {
+    quint64 nID;
+    qint64 nOffset;
+    bool bIsFree;
+};
+}  // namespace XWINPDB_DEF
+#endif  // XWINPDB_DEF_H
