@@ -22,7 +22,8 @@
 
 #ifdef Q_OS_WIN32
 #define X_PDB_FUNCTION_DWORD(func_name, pdb_name) \
-    quint32 func_name(IDiaSymbol *pSymbol) {      \
+    quint32 func_name(IDiaSymbol *pSymbol)        \
+    {                                             \
         quint32 nResult = 0;                      \
         DWORD dwTemp = 0;                         \
         if (pSymbol->pdb_name(&dwTemp) == S_OK) { \
@@ -117,7 +118,8 @@ X_PDB_FUNCTION_DWORD(_pdb_sym_get_virtualBaseOffset, get_virtualBaseOffset)
 X_PDB_FUNCTION_DWORD(_pdb_sym_get_virtualTableShapeId, get_virtualTableShapeId)
 
 #define X_PDB_FUNCTION_BOOL(func_name, pdb_name) \
-    bool func_name(IDiaSymbol *pSymbol) {        \
+    bool func_name(IDiaSymbol *pSymbol)          \
+    {                                            \
         bool bResult = false;                    \
         BOOL bTemp = 0;                          \
         if (pSymbol->pdb_name(&bTemp) == S_OK) { \
@@ -223,7 +225,8 @@ X_PDB_FUNCTION_BOOL(_pdb_sym_get_wasInlined, get_wasInlined)
 X_PDB_FUNCTION_BOOL(_pdb_sym_get_isLTCG, get_isLTCG)
 
 #define X_PDB_FUNCTION_BSTRING(func_name, pdb_name)     \
-    QString func_name(IDiaSymbol *pSymbol) {            \
+    QString func_name(IDiaSymbol *pSymbol)              \
+    {                                                   \
         QString sResult;                                \
         BSTR bstring = nullptr;                         \
         if (pSymbol->pdb_name(&bstring) == S_OK) {      \
@@ -244,7 +247,8 @@ X_PDB_FUNCTION_BSTRING(_pdb_sym_get_undecoratedName, get_undecoratedName)
 X_PDB_FUNCTION_BSTRING(_pdb_sym_get_unused, get_unused)
 
 #define X_PDB_FUNCTION_ULONGLONG(func_name, pdb_name) \
-    quint64 func_name(IDiaSymbol *pSymbol) {          \
+    quint64 func_name(IDiaSymbol *pSymbol)            \
+    {                                                 \
         quint64 nResult = 0;                          \
         ULONGLONG llTemp = 0;                         \
         if (pSymbol->pdb_name(&llTemp) == S_OK) {     \
@@ -261,7 +265,8 @@ X_PDB_FUNCTION_ULONGLONG(_pdb_sym_get_targetVirtualAddress, get_targetVirtualAdd
 X_PDB_FUNCTION_ULONGLONG(_pdb_sym_get_virtualAddress, get_virtualAddress)
 
 #define X_PDB_FUNCTION_LONG(func_name, pdb_name) \
-    quint32 func_name(IDiaSymbol *pSymbol) {     \
+    quint32 func_name(IDiaSymbol *pSymbol)       \
+    {                                            \
         quint32 nResult = 0;                     \
         LONG lTemp = 0;                          \
         if (pSymbol->pdb_name(&lTemp) == S_OK) { \
@@ -275,7 +280,8 @@ X_PDB_FUNCTION_LONG(_pdb_sym_get_thisAdjust, get_thisAdjust)
 X_PDB_FUNCTION_LONG(_pdb_sym_get_virtualBasePointerOffset, get_virtualBasePointerOffset)
 
 #define X_PDB_FUNCTION_SYMBOL(func_name, pdb_name) \
-    IDiaSymbol *func_name(IDiaSymbol *pSymbol) {   \
+    IDiaSymbol *func_name(IDiaSymbol *pSymbol)     \
+    {                                              \
         IDiaSymbol *pResult = nullptr;             \
         IDiaSymbol *pTemp = nullptr;               \
         if (pSymbol->pdb_name(&pTemp) == S_OK) {   \
@@ -299,7 +305,8 @@ X_PDB_FUNCTION_SYMBOL(_pdb_sym_get_upperBound, get_upperBound)
 X_PDB_FUNCTION_SYMBOL(_pdb_sym_get_virtualBaseTableType, get_virtualBaseTableType)
 X_PDB_FUNCTION_SYMBOL(_pdb_sym_get_virtualTableShape, get_virtualTableShape)
 
-QString _pdb_sym_get_undecoratedNameEx(IDiaSymbol *pSymbol) {
+QString _pdb_sym_get_undecoratedNameEx(IDiaSymbol *pSymbol)
+{
     QString sResult;
     BSTR bstring = nullptr;
 
@@ -311,7 +318,8 @@ QString _pdb_sym_get_undecoratedNameEx(IDiaSymbol *pSymbol) {
     return sResult;
 }
 
-quint32 _pdb_sym_get_Count(IDiaEnumSymbols *pEnumSymbols) {
+quint32 _pdb_sym_get_Count(IDiaEnumSymbols *pEnumSymbols)
+{
     quint32 nResult = 0;
     LONG lTemp = 0;
 
@@ -322,7 +330,8 @@ quint32 _pdb_sym_get_Count(IDiaEnumSymbols *pEnumSymbols) {
     return nResult;
 }
 
-QString _pdb_sym_get_guid(IDiaSymbol *pSymbol) {
+QString _pdb_sym_get_guid(IDiaSymbol *pSymbol)
+{
     QString sResult;
 
     GUID guid;
@@ -337,7 +346,8 @@ QString _pdb_sym_get_guid(IDiaSymbol *pSymbol) {
 
 #endif
 
-XWinPDB::XWinPDB(QIODevice *pDevice) : XBinary(pDevice) {
+XWinPDB::XWinPDB(QIODevice *pDevice) : XBinary(pDevice)
+{
 #ifdef Q_OS_WIN
     g_pDiaDataSource = nullptr;
     g_pDiaSession = nullptr;
@@ -345,7 +355,8 @@ XWinPDB::XWinPDB(QIODevice *pDevice) : XBinary(pDevice) {
 #endif
 }
 
-XWinPDB::~XWinPDB() {
+XWinPDB::~XWinPDB()
+{
 #ifdef Q_OS_WIN
     if (g_pGlobal) {
         g_pGlobal->Release();
@@ -364,7 +375,8 @@ XWinPDB::~XWinPDB() {
 #endif
 }
 
-bool XWinPDB::loadMSDIALibrary(QString sFileName) {
+bool XWinPDB::loadMSDIALibrary(QString sFileName)
+{
     bool bResult = false;
 #ifdef Q_OS_WIN
     if (g_pDiaDataSource) {
@@ -387,7 +399,8 @@ bool XWinPDB::loadMSDIALibrary(QString sFileName) {
     return bResult;
 }
 
-bool XWinPDB::loadFile(QString sFileName) {
+bool XWinPDB::loadFile(QString sFileName)
+{
     bool bResult = false;
 #ifdef Q_OS_WIN
     if (g_pDiaDataSource) {
@@ -427,7 +440,8 @@ bool XWinPDB::loadFile(QString sFileName) {
     return bResult;
 }
 
-QString XWinPDB::getFileFormatString() {
+QString XWinPDB::getFileFormatString()
+{
     QString sResult;
 #ifdef Q_OS_WIN
     if (g_pGlobal) {
@@ -437,7 +451,8 @@ QString XWinPDB::getFileFormatString() {
     return sResult;
 }
 
-QString XWinPDB::getArch() {
+QString XWinPDB::getArch()
+{
 #ifdef Q_OS_WIN
     return XPE::getImageFileHeaderMachinesS().value(_pdb_sym_get_machineType(g_pGlobal));
 #else
@@ -445,7 +460,8 @@ QString XWinPDB::getArch() {
 #endif
 }
 
-XWinPDB::PDB_INFO XWinPDB::getPdbInfo() {
+XWinPDB::PDB_INFO XWinPDB::getPdbInfo()
+{
     PDB_INFO result = {};
 #ifdef Q_OS_WIN
     result.sName = _pdb_sym_get_name(g_pGlobal);
@@ -460,7 +476,8 @@ XWinPDB::PDB_INFO XWinPDB::getPdbInfo() {
     return result;
 }
 
-XWinPDB::PDB_STATS XWinPDB::getPdbStats(PDSTRUCT *pPdStruct) {
+XWinPDB::PDB_STATS XWinPDB::getPdbStats(PDSTRUCT *pPdStruct)
+{
     PDB_STATS result = {};
 #ifdef Q_OS_WIN
 
@@ -594,7 +611,8 @@ XWinPDB::PDB_STATS XWinPDB::getPdbStats(PDSTRUCT *pPdStruct) {
     return result;
 }
 
-void XWinPDB::test() {
+void XWinPDB::test()
+{
 #ifdef Q_OS_WIN
 
     //    QString v_compilerName=_pdb_sym_get_compilerName(g_pGlobal);
@@ -634,7 +652,8 @@ void XWinPDB::test() {
 #endif
 }
 
-QString XWinPDB::tabString(qint32 nLevel) {
+QString XWinPDB::tabString(qint32 nLevel)
+{
     QString sResult;
 
     for (qint32 i = 0; i < nLevel; i++) {
@@ -644,7 +663,8 @@ QString XWinPDB::tabString(qint32 nLevel) {
     return sResult;
 }
 #ifdef Q_OS_WIN
-void XWinPDB::_testSymbol(IDiaSymbol *pSymbol) {
+void XWinPDB::_testSymbol(IDiaSymbol *pSymbol)
+{
     DWORD dwTest = 0;
     ULONGLONG ullTest = 0;
     LONG lTest = 0;
@@ -902,7 +922,8 @@ void XWinPDB::_testSymbol(IDiaSymbol *pSymbol) {
 }
 #endif
 #ifdef Q_OS_WIN
-quint32 XWinPDB::getNumberOfChildren(IDiaSymbol *pSymbol) {
+quint32 XWinPDB::getNumberOfChildren(IDiaSymbol *pSymbol)
+{
     quint32 nResult = 0;
 
     IDiaEnumSymbols *pEnumSymbols;
@@ -920,7 +941,8 @@ quint32 XWinPDB::getNumberOfChildren(IDiaSymbol *pSymbol) {
 }
 #endif
 #ifdef Q_OS_WIN
-QString XWinPDB::getSymbolName(IDiaSymbol *pSymbol) {
+QString XWinPDB::getSymbolName(IDiaSymbol *pSymbol)
+{
     QString sResult;
 
     sResult = _pdb_sym_get_name(pSymbol);
@@ -936,7 +958,8 @@ QString XWinPDB::getSymbolName(IDiaSymbol *pSymbol) {
 }
 #endif
 #ifdef Q_OS_WIN
-QString XWinPDB::handleFunctionArgs(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint32 nLevel) {
+QString XWinPDB::handleFunctionArgs(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint32 nLevel)
+{
     QString sResult;
 
     QList<ELEMTYPE> listArgs;
@@ -975,7 +998,8 @@ QString XWinPDB::handleFunctionArgs(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint
 }
 #endif
 #ifdef Q_OS_WIN
-IDiaSymbol *XWinPDB::getSymbolById(quint32 nId) {
+IDiaSymbol *XWinPDB::getSymbolById(quint32 nId)
+{
     IDiaSymbol *pResult = nullptr;
     IDiaSymbol *pTemp = nullptr;
 
@@ -990,7 +1014,8 @@ IDiaSymbol *XWinPDB::getSymbolById(quint32 nId) {
 }
 #endif
 #ifdef Q_OS_WIN
-XWinPDB::ELEMTYPE XWinPDB::handleType(quint32 nId, OPTIONS *pOptions) {
+XWinPDB::ELEMTYPE XWinPDB::handleType(quint32 nId, OPTIONS *pOptions)
+{
     ELEMTYPE result = {};
 
     IDiaSymbol *pSymbol = getSymbolById(nId);
@@ -1005,7 +1030,8 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(quint32 nId, OPTIONS *pOptions) {
 }
 #endif
 #ifdef Q_OS_WIN
-XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint32 nLevel) {
+XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qint32 nLevel)
+{
     ELEMTYPE result = {};
 
     result.nID = _pdb_sym_get_symIndexId(pSymbol);
@@ -1334,7 +1360,8 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
 }
 #endif
 #ifdef Q_OS_WIN
-QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions) {
+QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
+{
     // TODO hide fix offset and add alignment for classes
     QString sResult;
 
@@ -1508,7 +1535,8 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions) {
     return sResult;
 }
 #endif
-void XWinPDB::_addStringRecord(QString *pString, QList<TNODE> *pListNodes, qint32 nIndex, qint32 *pnLevel, OPTIONS *pOptions) {
+void XWinPDB::_addStringRecord(QString *pString, QList<TNODE> *pListNodes, qint32 nIndex, qint32 *pnLevel, OPTIONS *pOptions)
+{
     if (pListNodes->at(nIndex).bIsBegin) {
         *pString += tabString(*pnLevel);
 
@@ -1538,7 +1566,8 @@ void XWinPDB::_addStringRecord(QString *pString, QList<TNODE> *pListNodes, qint3
     *pString += QString("\r\n");
 }
 
-qint32 XWinPDB::_findTNodeByGuid(QList<TNODE> *pListNodes, QString sGUID) {
+qint32 XWinPDB::_findTNodeByGuid(QList<TNODE> *pListNodes, QString sGUID)
+{
     qint32 nResult = -1;
 
     qint32 nNumberOfRecords = pListNodes->count();
