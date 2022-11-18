@@ -346,7 +346,8 @@ QString _pdb_sym_get_guid(IDiaSymbol *pSymbol)
 
 #endif
 
-XWinPDB::XWinPDB(QIODevice *pDevice) : XBinary(pDevice)
+XWinPDB::XWinPDB(QIODevice *pDevice)
+    : XBinary(pDevice)
 {
 #ifdef Q_OS_WIN
     g_pDiaDataSource = nullptr;
