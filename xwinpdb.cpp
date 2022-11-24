@@ -725,9 +725,11 @@ void XWinPDB::_testSymbol(IDiaSymbol *pSymbol)
     if (pSymbol->get_editAndContinueEnabled(&bTest) == S_OK) qDebug("get_editAndContinueEnabled: %d", _pdb_sym_get_editAndContinueEnabled(pSymbol));
     if (pSymbol->get_exceptionHandlerAddressOffset(&dwTest) == S_OK) qDebug("get_exceptionHandlerAddressOffset: %d", _pdb_sym_get_exceptionHandlerAddressOffset(pSymbol));
     if (pSymbol->get_exceptionHandlerAddressSection(&dwTest) == S_OK) qDebug("get_exceptionHandlerAddressSection: %d", _pdb_sym_get_exceptionHandlerAddressSection(pSymbol));
-    if (pSymbol->get_exceptionHandlerRelativeVirtualAddress(&dwTest) == S_OK) qDebug("get_exceptionHandlerRelativeVirtualAddress: %d", _pdb_sym_get_exceptionHandlerRelativeVirtualAddress(pSymbol));
+    if (pSymbol->get_exceptionHandlerRelativeVirtualAddress(&dwTest) == S_OK)
+        qDebug("get_exceptionHandlerRelativeVirtualAddress: %d", _pdb_sym_get_exceptionHandlerRelativeVirtualAddress(pSymbol));
     if (pSymbol->get_exceptionHandlerVirtualAddress(&ullTest) == S_OK) qDebug("get_exceptionHandlerVirtualAddress: %d", _pdb_sym_get_exceptionHandlerVirtualAddress(pSymbol));
-    if (pSymbol->get_exportHasExplicitlyAssignedOrdinal(&bTest) == S_OK) qDebug("get_exportHasExplicitlyAssignedOrdinal: %d", _pdb_sym_get_exportHasExplicitlyAssignedOrdinal(pSymbol));
+    if (pSymbol->get_exportHasExplicitlyAssignedOrdinal(&bTest) == S_OK)
+        qDebug("get_exportHasExplicitlyAssignedOrdinal: %d", _pdb_sym_get_exportHasExplicitlyAssignedOrdinal(pSymbol));
     if (pSymbol->get_exportIsForwarder(&bTest) == S_OK) qDebug("get_exportIsForwarder: %d", _pdb_sym_get_exportIsForwarder(pSymbol));
     if (pSymbol->get_farReturn(&bTest) == S_OK) qDebug("get_farReturn: %d", _pdb_sym_get_farReturn(pSymbol));
     if (pSymbol->get_finalLiveStaticSize(&dwTest) == S_OK) qDebug("get_finalLiveStaticSize: %d", _pdb_sym_get_finalLiveStaticSize(pSymbol));
@@ -804,7 +806,8 @@ void XWinPDB::_testSymbol(IDiaSymbol *pSymbol)
     if (pSymbol->get_liveRangeLength(&ullTest) == S_OK) qDebug("get_liveRangeLength: %d", _pdb_sym_get_liveRangeLength(pSymbol));
     if (pSymbol->get_liveRangeStartAddressOffset(&dwTest) == S_OK) qDebug("get_liveRangeStartAddressOffset: %d", _pdb_sym_get_liveRangeStartAddressOffset(pSymbol));
     if (pSymbol->get_liveRangeStartAddressSection(&dwTest) == S_OK) qDebug("get_liveRangeStartAddressSection: %d", _pdb_sym_get_liveRangeStartAddressSection(pSymbol));
-    if (pSymbol->get_liveRangeStartRelativeVirtualAddress(&dwTest) == S_OK) qDebug("get_liveRangeStartRelativeVirtualAddress: %d", _pdb_sym_get_liveRangeStartRelativeVirtualAddress(pSymbol));
+    if (pSymbol->get_liveRangeStartRelativeVirtualAddress(&dwTest) == S_OK)
+        qDebug("get_liveRangeStartRelativeVirtualAddress: %d", _pdb_sym_get_liveRangeStartRelativeVirtualAddress(pSymbol));
     if (pSymbol->get_localBasePointerRegisterId(&dwTest) == S_OK) qDebug("get_localBasePointerRegisterId: %d", _pdb_sym_get_localBasePointerRegisterId(pSymbol));
     if (pSymbol->get_locationType(&dwTest) == S_OK) qDebug("get_locationType: %d", _pdb_sym_get_locationType(pSymbol));
     if (pSymbol->get_lowerBound(&pSymbolTest) == S_OK) qDebug("get_lowerBound");
