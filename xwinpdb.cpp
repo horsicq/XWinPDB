@@ -764,7 +764,8 @@ void XWinPDB::_testSymbol(IDiaSymbol *pSymbol)
     if (pSymbol->get_intrinsic(&bTest) == S_OK) qDebug("get_intrinsic: %d", _pdb_sym_get_intrinsic(pSymbol));
     if (pSymbol->get_intro(&bTest) == S_OK) qDebug("get_intro: %d", _pdb_sym_get_intro(pSymbol));
     if (pSymbol->get_isAcceleratorGroupSharedLocal(&bTest) == S_OK) qDebug("get_isAcceleratorGroupSharedLocal: %d", _pdb_sym_get_isAcceleratorGroupSharedLocal(pSymbol));
-    if (pSymbol->get_isAcceleratorPointerTagLiveRange(&bTest) == S_OK) qDebug("get_isAcceleratorPointerTagLiveRange: %d", _pdb_sym_get_isAcceleratorPointerTagLiveRange(pSymbol));
+    if (pSymbol->get_isAcceleratorPointerTagLiveRange(&bTest) == S_OK)
+        qDebug("get_isAcceleratorPointerTagLiveRange: %d", _pdb_sym_get_isAcceleratorPointerTagLiveRange(pSymbol));
     if (pSymbol->get_isAcceleratorStubFunction(&bTest) == S_OK) qDebug("get_isAcceleratorStubFunction: %d", _pdb_sym_get_isAcceleratorStubFunction(pSymbol));
     if (pSymbol->get_isAggregated(&bTest) == S_OK) qDebug("get_isAggregated: %d", _pdb_sym_get_isAggregated(pSymbol));
     if (pSymbol->get_isCTypes(&bTest) == S_OK) qDebug("get_isCTypes: %d", _pdb_sym_get_isCTypes(pSymbol));
