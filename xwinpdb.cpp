@@ -337,7 +337,8 @@ QString _pdb_sym_get_guid(IDiaSymbol *pSymbol)
     GUID guid;
 
     if (pSymbol->get_guid(&guid) == S_OK) {
-        QUuid uuid(guid.Data1, guid.Data2, guid.Data3, guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7]);
+        QUuid uuid(guid.Data1, guid.Data2, guid.Data3, guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3], guid.Data4[4], guid.Data4[5], guid.Data4[6],
+                   guid.Data4[7]);
         sResult = uuid.toString().remove("{").remove("}");
     }
 
@@ -724,10 +725,12 @@ void XWinPDB::_testSymbol(IDiaSymbol *pSymbol)
     if (pSymbol->get_dataKind(&dwTest) == S_OK) qDebug("get_dataKind: %d", _pdb_sym_get_dataKind(pSymbol));
     if (pSymbol->get_editAndContinueEnabled(&bTest) == S_OK) qDebug("get_editAndContinueEnabled: %d", _pdb_sym_get_editAndContinueEnabled(pSymbol));
     if (pSymbol->get_exceptionHandlerAddressOffset(&dwTest) == S_OK) qDebug("get_exceptionHandlerAddressOffset: %d", _pdb_sym_get_exceptionHandlerAddressOffset(pSymbol));
-    if (pSymbol->get_exceptionHandlerAddressSection(&dwTest) == S_OK) qDebug("get_exceptionHandlerAddressSection: %d", _pdb_sym_get_exceptionHandlerAddressSection(pSymbol));
+    if (pSymbol->get_exceptionHandlerAddressSection(&dwTest) == S_OK)
+        qDebug("get_exceptionHandlerAddressSection: %d", _pdb_sym_get_exceptionHandlerAddressSection(pSymbol));
     if (pSymbol->get_exceptionHandlerRelativeVirtualAddress(&dwTest) == S_OK)
         qDebug("get_exceptionHandlerRelativeVirtualAddress: %d", _pdb_sym_get_exceptionHandlerRelativeVirtualAddress(pSymbol));
-    if (pSymbol->get_exceptionHandlerVirtualAddress(&ullTest) == S_OK) qDebug("get_exceptionHandlerVirtualAddress: %d", _pdb_sym_get_exceptionHandlerVirtualAddress(pSymbol));
+    if (pSymbol->get_exceptionHandlerVirtualAddress(&ullTest) == S_OK)
+        qDebug("get_exceptionHandlerVirtualAddress: %d", _pdb_sym_get_exceptionHandlerVirtualAddress(pSymbol));
     if (pSymbol->get_exportHasExplicitlyAssignedOrdinal(&bTest) == S_OK)
         qDebug("get_exportHasExplicitlyAssignedOrdinal: %d", _pdb_sym_get_exportHasExplicitlyAssignedOrdinal(pSymbol));
     if (pSymbol->get_exportIsForwarder(&bTest) == S_OK) qDebug("get_exportIsForwarder: %d", _pdb_sym_get_exportIsForwarder(pSymbol));
@@ -777,7 +780,8 @@ void XWinPDB::_testSymbol(IDiaSymbol *pSymbol)
     if (pSymbol->get_isHotpatchable(&bTest) == S_OK) qDebug("get_isHotpatchable: %d", _pdb_sym_get_isHotpatchable(pSymbol));
     if (pSymbol->get_isInterfaceUdt(&bTest) == S_OK) qDebug("get_isInterfaceUdt: %d", _pdb_sym_get_isInterfaceUdt(pSymbol));
     if (pSymbol->get_isLTCG(&bTest) == S_OK) qDebug("get_isLTCG: %d", _pdb_sym_get_isLTCG(pSymbol));
-    if (pSymbol->get_isLocationControlFlowDependent(&bTest) == S_OK) qDebug("get_isLocationControlFlowDependent: %d", _pdb_sym_get_isLocationControlFlowDependent(pSymbol));
+    if (pSymbol->get_isLocationControlFlowDependent(&bTest) == S_OK)
+        qDebug("get_isLocationControlFlowDependent: %d", _pdb_sym_get_isLocationControlFlowDependent(pSymbol));
     if (pSymbol->get_isMSILNetmodule(&bTest) == S_OK) qDebug("get_isMSILNetmodule: %d", _pdb_sym_get_isMSILNetmodule(pSymbol));
     if (pSymbol->get_isMatrixRowMajor(&bTest) == S_OK) qDebug("get_isMatrixRowMajor: %d", _pdb_sym_get_isMatrixRowMajor(pSymbol));
     if (pSymbol->get_isMultipleInheritance(&bTest) == S_OK) qDebug("get_isMultipleInheritance: %d", _pdb_sym_get_isMultipleInheritance(pSymbol));
@@ -825,7 +829,8 @@ void XWinPDB::_testSymbol(IDiaSymbol *pSymbol)
     if (pSymbol->get_noReturn(&bTest) == S_OK) qDebug("get_noReturn: %d", _pdb_sym_get_noReturn(pSymbol));
     if (pSymbol->get_noStackOrdering(&bTest) == S_OK) qDebug("get_noStackOrdering: %d", _pdb_sym_get_noStackOrdering(pSymbol));
     if (pSymbol->get_notReached(&bTest) == S_OK) qDebug("get_notReached: %d", _pdb_sym_get_notReached(pSymbol));
-    if (pSymbol->get_numberOfAcceleratorPointerTags(&dwTest) == S_OK) qDebug("get_numberOfAcceleratorPointerTags: %d", _pdb_sym_get_numberOfAcceleratorPointerTags(pSymbol));
+    if (pSymbol->get_numberOfAcceleratorPointerTags(&dwTest) == S_OK)
+        qDebug("get_numberOfAcceleratorPointerTags: %d", _pdb_sym_get_numberOfAcceleratorPointerTags(pSymbol));
     if (pSymbol->get_numberOfColumns(&dwTest) == S_OK) qDebug("get_numberOfColumns: %d", _pdb_sym_get_numberOfColumns(pSymbol));
     if (pSymbol->get_numberOfModifiers(&dwTest) == S_OK) qDebug("get_numberOfModifiers: %d", _pdb_sym_get_numberOfModifiers(pSymbol));
     if (pSymbol->get_numberOfRegisterIndices(&dwTest) == S_OK) qDebug("get_numberOfRegisterIndices: %d", _pdb_sym_get_numberOfRegisterIndices(pSymbol));
@@ -1560,7 +1565,8 @@ void XWinPDB::_addStringRecord(QString *pString, QList<TNODE> *pListNodes, qint3
         *pString += pListNodes->at(nIndex).sName;
 
         if (pOptions->bShowComments) {
-            *pString += QString(" // Offset=0x%1 Size=0x%2").arg(XBinary::valueToHexEx(pListNodes->at(nIndex).nOffset), XBinary::valueToHexEx(pListNodes->at(nIndex).nSize));
+            *pString +=
+                QString(" // Offset=0x%1 Size=0x%2").arg(XBinary::valueToHexEx(pListNodes->at(nIndex).nOffset), XBinary::valueToHexEx(pListNodes->at(nIndex).nSize));
         }
     }
 
