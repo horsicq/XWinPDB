@@ -393,7 +393,7 @@ bool XWinPDB::loadMSDIALibrary(QString sFileName)
         if (SUCCEEDED(hr)) {
             bResult = true;
         } else {
-            emit errorMessage(tr("Cannot load msdia library"));
+            emit errorMessage(tr("Cannot load MSDIA library"));
         }
     }
 #endif
