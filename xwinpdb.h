@@ -91,6 +91,8 @@ public:
         ET eType;
         qint32 nOffset;
         quint32 nID;
+        qint32 nBitOffset;
+        qint32 nBitSize;
         QList<ELEMTYPE> listRecords;
     };
 
@@ -99,6 +101,8 @@ public:
         QString sName;
         qint32 nSize;
         qint32 nOffset;
+        qint32 nBitOffset;
+        qint32 nBitSize;
         quint32 nID;
         bool bShowType;
         bool bIsBegin;
