@@ -1460,7 +1460,6 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
                             bool bPrev = false;
 
                             if ((listNodes[i].nOffset + listNodes[i].nSize) == listNodes[j].nOffset) {
-
                                 if (listNodes[i].nBitSize) {
                                     if ((listNodes[i].nBitOffset + listNodes[i].nBitSize) == listNodes[j].nBitOffset) {
                                         bNext = true;
@@ -1605,10 +1604,12 @@ void XWinPDB::_addStringRecord(QString *pString, QList<TNODE> *pListNodes, qint3
         *pString += ";";
 
         if (pOptions->bShowComments) {
-            *pString += QString(" // Offset = 0x%1 Size = 0x%2").arg(XBinary::valueToHexEx(pListNodes->at(nIndex).nOffset), XBinary::valueToHexEx(pListNodes->at(nIndex).nSize));
+            *pString +=
+                QString(" // Offset = 0x%1 Size = 0x%2").arg(XBinary::valueToHexEx(pListNodes->at(nIndex).nOffset), XBinary::valueToHexEx(pListNodes->at(nIndex).nSize));
 
             if (pListNodes->at(nIndex).nBitSize) {
-                *pString += QString(" BitOffset=0x%1 BitSize=0x%2").arg(XBinary::valueToHexEx(pListNodes->at(nIndex).nBitOffset), XBinary::valueToHexEx(pListNodes->at(nIndex).nBitSize));
+                *pString += QString(" BitOffset=0x%1 BitSize=0x%2")
+                                .arg(XBinary::valueToHexEx(pListNodes->at(nIndex).nBitOffset), XBinary::valueToHexEx(pListNodes->at(nIndex).nBitSize));
             }
         }
     }
