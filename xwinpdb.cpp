@@ -1,4 +1,4 @@
-/* Copyright (c) 2022 hors<horsicq@gmail.com>
+/* Copyright (c) 2022-2023 hors<horsicq@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -1383,6 +1383,7 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
     if ((elemType.eType == ET_STRUCT) || (elemType.eType == ET_UNION)) {
         QList<TNODE> listNodes;
 
+        // START
         {
             TNODE record = {};
 
@@ -1427,6 +1428,7 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
             }
         }
 
+        // END
         {
             TNODE record = {};
 
@@ -1449,6 +1451,8 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
             listNodes.append(record);
         }
 
+        // TODO add start/end bits
+
         if ((pOptions->bFixOffsets) || (pOptions->bAddAlignment)) {
             {
                 qint32 nNumberOfRecords = listNodes.count();
@@ -1459,22 +1463,34 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
                             bool bNext = false;
                             bool bPrev = false;
 
+//                            if ((listNodes[i].nOffset + listNodes[i].nSize) == listNodes[j].nOffset) {
+//                                if (listNodes[i].nBitSize) {
+//                                    if ((listNodes[i].nBitOffset + listNodes[i].nBitSize) == listNodes[j].nBitOffset) {
+//                                        bNext = true;
+//                                    }
+//                                } else {
+//                                    bNext = true;
+//                                }
+//                            }
+
+//                            if ((listNodes[j].nOffset + listNodes[j].nSize) == listNodes[i].nOffset) {
+//                                if (listNodes[i].nBitSize) {
+//                                    if ((listNodes[j].nBitOffset + listNodes[j].nBitSize) == listNodes[i].nBitOffset) {
+//                                        bPrev = true;
+//                                    }
+//                                } else {
+//                                    bPrev = true;
+//                                }
+//                            }
+
                             if ((listNodes[i].nOffset + listNodes[i].nSize) == listNodes[j].nOffset) {
-                                if (listNodes[i].nBitSize) {
-                                    if ((listNodes[i].nBitOffset + listNodes[i].nBitSize) == listNodes[j].nBitOffset) {
-                                        bNext = true;
-                                    }
-                                } else {
+                                if ((!listNodes[i].nBitSize) && (!listNodes[j].nBitSize)) {
                                     bNext = true;
                                 }
                             }
 
                             if ((listNodes[j].nOffset + listNodes[j].nSize) == listNodes[i].nOffset) {
-                                if (listNodes[i].nBitSize) {
-                                    if ((listNodes[j].nBitOffset + listNodes[j].nBitSize) == listNodes[i].nBitOffset) {
-                                        bPrev = true;
-                                    }
-                                } else {
+                                if ((!listNodes[i].nBitSize) && (!listNodes[j].nBitSize)) {
                                     bPrev = true;
                                 }
                             }
