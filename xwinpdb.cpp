@@ -1463,25 +1463,25 @@ QString XWinPDB::elemTypeToString(ELEMTYPE elemType, OPTIONS *pOptions)
                             bool bNext = false;
                             bool bPrev = false;
 
-//                            if ((listNodes[i].nOffset + listNodes[i].nSize) == listNodes[j].nOffset) {
-//                                if (listNodes[i].nBitSize) {
-//                                    if ((listNodes[i].nBitOffset + listNodes[i].nBitSize) == listNodes[j].nBitOffset) {
-//                                        bNext = true;
-//                                    }
-//                                } else {
-//                                    bNext = true;
-//                                }
-//                            }
+                            //                            if ((listNodes[i].nOffset + listNodes[i].nSize) == listNodes[j].nOffset) {
+                            //                                if (listNodes[i].nBitSize) {
+                            //                                    if ((listNodes[i].nBitOffset + listNodes[i].nBitSize) == listNodes[j].nBitOffset) {
+                            //                                        bNext = true;
+                            //                                    }
+                            //                                } else {
+                            //                                    bNext = true;
+                            //                                }
+                            //                            }
 
-//                            if ((listNodes[j].nOffset + listNodes[j].nSize) == listNodes[i].nOffset) {
-//                                if (listNodes[i].nBitSize) {
-//                                    if ((listNodes[j].nBitOffset + listNodes[j].nBitSize) == listNodes[i].nBitOffset) {
-//                                        bPrev = true;
-//                                    }
-//                                } else {
-//                                    bPrev = true;
-//                                }
-//                            }
+                            //                            if ((listNodes[j].nOffset + listNodes[j].nSize) == listNodes[i].nOffset) {
+                            //                                if (listNodes[i].nBitSize) {
+                            //                                    if ((listNodes[j].nBitOffset + listNodes[j].nBitSize) == listNodes[i].nBitOffset) {
+                            //                                        bPrev = true;
+                            //                                    }
+                            //                                } else {
+                            //                                    bPrev = true;
+                            //                                }
+                            //                            }
 
                             if ((listNodes[i].nOffset + listNodes[i].nSize) == listNodes[j].nOffset) {
                                 if ((!listNodes[i].nBitSize) && (!listNodes[j].nBitSize)) {
