@@ -1084,110 +1084,41 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
         quint32 nBaseType = _pdb_sym_get_baseType(pSymbol);
 
         switch (nBaseType) {
-            case 0:
-                result.sName = "<btNoType>";
-                break;
-            case 1:
-                result.sName = "void";
-                break;
-            case 2:
-                result.sName = "char";
-                break;
-            case 3:
-                result.sName = "wchar_t";
-                break;
-            case 4:
-                result.sName = "signed char";
-                break;
-            case 5:
-                result.sName = "unsigned char";
-                break;
-            case 6:
-                result.sName = "int";
-                break;
-            case 7:
-                result.sName = "unsigned int";
-                break;
-            case 8:
-                result.sName = "float";
-                break;
-            case 9:
-                result.sName = "BCD";
-                break;
-            case 10:
-                result.sName = "bool";
-                break;
-            case 11:
-                result.sName = "short";
-                break;
-            case 12:
-                result.sName = "unsigned short";
-                break;
-            case 13:
-                result.sName = "long";
-                break;
-            case 14:
-                result.sName = "unsigned long";
-                break;
-            case 15:
-                result.sName = "__int8";
-                break;
-            case 16:
-                result.sName = "__int16";
-                break;
-            case 17:
-                result.sName = "__int32";
-                break;
-            case 18:
-                result.sName = "__int64";
-                break;
-            case 19:
-                result.sName = "__int128";
-                break;
-            case 20:
-                result.sName = "unsigned __int8";
-                break;
-            case 21:
-                result.sName = "unsigned __int16";
-                break;
-            case 22:
-                result.sName = "unsigned __int32";
-                break;
-            case 23:
-                result.sName = "unsigned __int64";
-                break;
-            case 24:
-                result.sName = "unsigned __int128";
-                break;
-            case 25:
-                result.sName = "CURRENCY";
-                break;
-            case 26:
-                result.sName = "DATE";
-                break;
-            case 27:
-                result.sName = "VARIANT";
-                break;
-            case 28:
-                result.sName = "COMPLEX";
-                break;
-            case 29:
-                result.sName = "BIT";
-                break;
-            case 30:
-                result.sName = "BSTR";
-                break;
-            case 31:
-                result.sName = "HRESULT";
-                break;
-            case 32:
-                result.sName = "char16_t";
-                break;
-            case 33:
-                result.sName = "char32_t";
-                break;
-            default:
-                qDebug("FIXME");
+            case 0: result.sName = "<btNoType>"; break;
+            case 1: result.sName = "void"; break;
+            case 2: result.sName = "char"; break;
+            case 3: result.sName = "wchar_t"; break;
+            case 4: result.sName = "signed char"; break;
+            case 5: result.sName = "unsigned char"; break;
+            case 6: result.sName = "int"; break;
+            case 7: result.sName = "unsigned int"; break;
+            case 8: result.sName = "float"; break;
+            case 9: result.sName = "BCD"; break;
+            case 10: result.sName = "bool"; break;
+            case 11: result.sName = "short"; break;
+            case 12: result.sName = "unsigned short"; break;
+            case 13: result.sName = "long"; break;
+            case 14: result.sName = "unsigned long"; break;
+            case 15: result.sName = "__int8"; break;
+            case 16: result.sName = "__int16"; break;
+            case 17: result.sName = "__int32"; break;
+            case 18: result.sName = "__int64"; break;
+            case 19: result.sName = "__int128"; break;
+            case 20: result.sName = "unsigned __int8"; break;
+            case 21: result.sName = "unsigned __int16"; break;
+            case 22: result.sName = "unsigned __int32"; break;
+            case 23: result.sName = "unsigned __int64"; break;
+            case 24: result.sName = "unsigned __int128"; break;
+            case 25: result.sName = "CURRENCY"; break;
+            case 26: result.sName = "DATE"; break;
+            case 27: result.sName = "VARIANT"; break;
+            case 28: result.sName = "COMPLEX"; break;
+            case 29: result.sName = "BIT"; break;
+            case 30: result.sName = "BSTR"; break;
+            case 31: result.sName = "HRESULT"; break;
+            case 32: result.sName = "char16_t"; break;
+            case 33: result.sName = "char32_t"; break;
+            default: qDebug("FIXME");
         }
 
         if (pOptions->bFixTypes) {
@@ -1195,36 +1126,20 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
             if (((nBaseType == 7) || (nBaseType == 14)) && (result.nSize != 4))  // "unsigned int"
             {
                 switch (result.nSize) {
-                    case 1:
-                        result.sName = "unsigned char";
-                        break;
-                    case 2:
-                        result.sName = "unsigned short";
-                        break;
-                    case 4:
-                        result.sName = "unsigned int";
-                        break;
-                    case 8:
-                        result.sName = "unsigned long long";
-                        break;
+                    case 1: result.sName = "unsigned char"; break;
+                    case 2: result.sName = "unsigned short"; break;
+                    case 4: result.sName = "unsigned int"; break;
+                    case 8: result.sName = "unsigned long long"; break;
                 }
             }
 
             if (((nBaseType == 6) || (nBaseType == 13)) && (result.nSize != 4))  // "int"
             {
                 switch (result.nSize) {
-                    case 1:
-                        result.sName = "char";
-                        break;
-                    case 2:
-                        result.sName = "short";
-                        break;
-                    case 4:
-                        result.sName = "int";
-                        break;
-                    case 8:
-                        result.sName = "long long";
-                        break;
+                    case 1: result.sName = "char"; break;
+                    case 2: result.sName = "short"; break;
+                    case 4: result.sName = "int"; break;
+                    case 8: result.sName = "long long"; break;
                 }
             }
         }
