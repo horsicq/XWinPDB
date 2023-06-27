@@ -507,14 +507,10 @@ XWinPDB::PDB_STATS XWinPDB::getPdbStats(PDSTRUCT *pPdStruct)
                 if (nSymTag == SymTagUDT) {
                     quint32 nUDTKind = _pdb_sym_get_udtKind(pSymbol);
 
-                    if (nUDTKind == 0)
-                        result.listUDT_struct.append(nID);
-                    else if (nUDTKind == 1)
-                        result.listUDT_class.append(nID);
-                    else if (nUDTKind == 2)
-                        result.listUDT_union.append(nID);
-                    else if (nUDTKind == 3)
-                        result.listUDT_interface.append(nID);
+                    if (nUDTKind == 0) result.listUDT_struct.append(nID);
+                    else if (nUDTKind == 1) result.listUDT_class.append(nID);
+                    else if (nUDTKind == 2) result.listUDT_union.append(nID);
+                    else if (nUDTKind == 3) result.listUDT_interface.append(nID);
                 } else if (nSymTag == SymTagPublicSymbol) {
                     result.listPublicSymbol.append(nID);
                 } else if (nSymTag == SymTagEnum) {
