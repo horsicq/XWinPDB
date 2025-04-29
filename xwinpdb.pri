@@ -25,7 +25,7 @@ DISTFILES += \
 
 !contains(XCONFIG, xpe) {
     XCONFIG += xpe
-    include($$PWD/../Formats/xpe.pri)
+    include($$PWD/../Formats/exec/xpe.pri)
 }
 
 INCLUDEPATH += $$PWD/msdia
