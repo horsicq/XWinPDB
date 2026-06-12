@@ -20,16 +20,67 @@
  */
 #include "xwinpdb.h"
 
-#ifdef Q_OS_WIN32
+#include <QVariant>
+
+struct X_PDB_RESULT {
+    bool bIsValid = false;
+    QVariant varValue;
+};
+
+#ifdef Q_OS_WIN
+static X_PDB_RESULT _pdb_valid_result(const QVariant &varValue)
+{
+    X_PDB_RESULT result = {};
+
+    result.bIsValid = true;
+    result.varValue = varValue;
+
+    return result;
+}
+
+static quint32 _pdb_result_uint(const X_PDB_RESULT &result)
+{
+    return result.varValue.toUInt();
+}
+
+static qint32 _pdb_result_int(const X_PDB_RESULT &result)
+{
+    return result.varValue.toInt();
+}
+
+static quint64 _pdb_result_ulonglong(const X_PDB_RESULT &result)
+{
+    return result.varValue.toULongLong();
+}
+
+static bool _pdb_result_bool(const X_PDB_RESULT &result)
+{
+    return result.varValue.toBool();
+}
+
+static QString _pdb_result_string(const X_PDB_RESULT &result)
+{
+    return result.varValue.toString();
+}
+
+static IDiaSymbol *_pdb_result_symbol(const X_PDB_RESULT &result)
+{
+    return static_cast<IDiaSymbol *>(result.varValue.value<void *>());
+}
+
+static int _pdb_result_debug(const X_PDB_RESULT &result)
+{
+    return result.varValue.toInt();
+}
+
 #define X_PDB_FUNCTION_DWORD(func_name, pdb_name) \
-    quint32 func_name(IDiaSymbol *pSymbol)        \
+    X_PDB_RESULT func_name(IDiaSymbol *pSymbol)   \
     {                                             \
-        quint32 nResult = 0;                      \
         DWORD dwTemp = 0;                         \
         if (pSymbol->pdb_name(&dwTemp) == S_OK) { \
-            nResult = dwTemp;                     \
+            return _pdb_valid_result(quint32(dwTemp)); \
         }                                         \
-        return nResult;                           \
+        return {};                                \
     }
 
 X_PDB_FUNCTION_DWORD(_pdb_sym_get_symIndexId, get_symIndexId)
@@ -118,14 +169,13 @@ X_PDB_FUNCTION_DWORD(_pdb_sym_get_virtualBaseOffset, get_virtualBaseOffset)
 X_PDB_FUNCTION_DWORD(_pdb_sym_get_virtualTableShapeId, get_virtualTableShapeId)
 
 #define X_PDB_FUNCTION_BOOL(func_name, pdb_name) \
-    bool func_name(IDiaSymbol *pSymbol)          \
+    X_PDB_RESULT func_name(IDiaSymbol *pSymbol)  \
     {                                            \
-        bool bResult = false;                    \
         BOOL bTemp = 0;                          \
         if (pSymbol->pdb_name(&bTemp) == S_OK) { \
-            bResult = bTemp;                     \
+            return _pdb_valid_result(bool(bTemp)); \
         }                                        \
-        return bResult;                          \
+        return {};                               \
     }
 
 X_PDB_FUNCTION_BOOL(_pdb_sym_get_isCTypes, get_isCTypes)
@@ -225,15 +275,15 @@ X_PDB_FUNCTION_BOOL(_pdb_sym_get_wasInlined, get_wasInlined)
 X_PDB_FUNCTION_BOOL(_pdb_sym_get_isLTCG, get_isLTCG)
 
 #define X_PDB_FUNCTION_BSTRING(func_name, pdb_name)     \
-    QString func_name(IDiaSymbol *pSymbol)              \
+    X_PDB_RESULT func_name(IDiaSymbol *pSymbol)         \
     {                                                   \
-        QString sResult;                                \
         BSTR bstring = nullptr;                         \
         if (pSymbol->pdb_name(&bstring) == S_OK) {      \
-            sResult = QString::fromWCharArray(bstring); \
+            QString sResult = QString::fromWCharArray(bstring); \
             SysFreeString(bstring);                     \
+            return _pdb_valid_result(sResult);          \
         }                                               \
-        return sResult;                                 \
+        return {};                                      \
     }
 
 X_PDB_FUNCTION_BSTRING(_pdb_sym_get_compilerName, get_compilerName)
@@ -247,14 +297,13 @@ X_PDB_FUNCTION_BSTRING(_pdb_sym_get_undecoratedName, get_undecoratedName)
 X_PDB_FUNCTION_BSTRING(_pdb_sym_get_unused, get_unused)
 
 #define X_PDB_FUNCTION_ULONGLONG(func_name, pdb_name) \
-    quint64 func_name(IDiaSymbol *pSymbol)            \
+    X_PDB_RESULT func_name(IDiaSymbol *pSymbol)       \
     {                                                 \
-        quint64 nResult = 0;                          \
         ULONGLONG llTemp = 0;                         \
         if (pSymbol->pdb_name(&llTemp) == S_OK) {     \
-            nResult = llTemp;                         \
+            return _pdb_valid_result(quint64(llTemp)); \
         }                                             \
-        return nResult;                               \
+        return {};                                    \
     }
 
 X_PDB_FUNCTION_ULONGLONG(_pdb_sym_get_PGODynamicInstructionCount, get_PGODynamicInstructionCount)
@@ -265,14 +314,13 @@ X_PDB_FUNCTION_ULONGLONG(_pdb_sym_get_targetVirtualAddress, get_targetVirtualAdd
 X_PDB_FUNCTION_ULONGLONG(_pdb_sym_get_virtualAddress, get_virtualAddress)
 
 #define X_PDB_FUNCTION_LONG(func_name, pdb_name) \
-    quint32 func_name(IDiaSymbol *pSymbol)       \
+    X_PDB_RESULT func_name(IDiaSymbol *pSymbol)  \
     {                                            \
-        quint32 nResult = 0;                     \
         LONG lTemp = 0;                          \
         if (pSymbol->pdb_name(&lTemp) == S_OK) { \
-            nResult = lTemp;                     \
+            return _pdb_valid_result(qint32(lTemp)); \
         }                                        \
-        return nResult;                          \
+        return {};                               \
     }
 
 X_PDB_FUNCTION_LONG(_pdb_sym_get_offset, get_offset)
@@ -280,14 +328,13 @@ X_PDB_FUNCTION_LONG(_pdb_sym_get_thisAdjust, get_thisAdjust)
 X_PDB_FUNCTION_LONG(_pdb_sym_get_virtualBasePointerOffset, get_virtualBasePointerOffset)
 
 #define X_PDB_FUNCTION_SYMBOL(func_name, pdb_name) \
-    IDiaSymbol *func_name(IDiaSymbol *pSymbol)     \
+    X_PDB_RESULT func_name(IDiaSymbol *pSymbol)    \
     {                                              \
-        IDiaSymbol *pResult = nullptr;             \
         IDiaSymbol *pTemp = nullptr;               \
         if (pSymbol->pdb_name(&pTemp) == S_OK) {   \
-            pResult = pTemp;                       \
+            return _pdb_valid_result(QVariant::fromValue(static_cast<void *>(pTemp))); \
         }                                          \
-        return pResult;                            \
+        return {};                                 \
     }
 
 X_PDB_FUNCTION_SYMBOL(_pdb_sym_get_arrayIndexType, get_arrayIndexType)
@@ -446,7 +493,7 @@ QString XWinPDB::getFileFormatString()
     QString sResult;
 #ifdef Q_OS_WIN
     if (g_pGlobal) {
-        sResult = _pdb_sym_get_name(g_pGlobal);
+        sResult = _pdb_result_string(_pdb_sym_get_name(g_pGlobal));
     }
 #endif
     return sResult;
@@ -455,7 +502,7 @@ QString XWinPDB::getFileFormatString()
 QString XWinPDB::getArch()
 {
 #ifdef Q_OS_WIN
-    return XPE::getImageFileHeaderMachinesS().value(_pdb_sym_get_machineType(g_pGlobal));
+    return XPE::getImageFileHeaderMachinesS().value(_pdb_result_uint(_pdb_sym_get_machineType(g_pGlobal)));
 #else
     return XBinary::getArch();
 #endif
@@ -465,14 +512,14 @@ XWinPDB::PDB_INFO XWinPDB::getPdbInfo()
 {
     PDB_INFO result = {};
 #ifdef Q_OS_WIN
-    result.sName = _pdb_sym_get_name(g_pGlobal);
+    result.sName = _pdb_result_string(_pdb_sym_get_name(g_pGlobal));
     result.sGUID = _pdb_sym_get_guid(g_pGlobal);
-    result.sFileName = _pdb_sym_get_symbolsFileName(g_pGlobal);
+    result.sFileName = _pdb_result_string(_pdb_sym_get_symbolsFileName(g_pGlobal));
     result.sArch = getArch();
-    result.nAge = _pdb_sym_get_age(g_pGlobal);
-    result.nSignature = _pdb_sym_get_signature(g_pGlobal);
-    result.bIsCTypes = _pdb_sym_get_isCTypes(g_pGlobal);
-    result.bIsStripped = _pdb_sym_get_isStripped(g_pGlobal);
+    result.nAge = _pdb_result_uint(_pdb_sym_get_age(g_pGlobal));
+    result.nSignature = _pdb_result_uint(_pdb_sym_get_signature(g_pGlobal));
+    result.bIsCTypes = _pdb_result_bool(_pdb_sym_get_isCTypes(g_pGlobal));
+    result.bIsStripped = _pdb_result_bool(_pdb_sym_get_isStripped(g_pGlobal));
 #endif
     return result;
 }
@@ -501,11 +548,11 @@ XWinPDB::PDB_STATS XWinPDB::getPdbStats(PDSTRUCT *pPdStruct)
 
             while (SUCCEEDED(pEnumSymbols->Next(1, &pSymbol, &celt)) && (celt == 1) && (!pPdStruct->bIsStop))  // TODO Stop
             {
-                quint32 nSymTag = _pdb_sym_get_symTag(pSymbol);
-                quint32 nID = _pdb_sym_get_symIndexId(pSymbol);
+                quint32 nSymTag = _pdb_result_uint(_pdb_sym_get_symTag(pSymbol));
+                quint32 nID = _pdb_result_uint(_pdb_sym_get_symIndexId(pSymbol));
 
                 if (nSymTag == SymTagUDT) {
-                    quint32 nUDTKind = _pdb_sym_get_udtKind(pSymbol);
+                    quint32 nUDTKind = _pdb_result_uint(_pdb_sym_get_udtKind(pSymbol));
 
                     if (nUDTKind == 0) result.listUDT_struct.append(nID);
                     else if (nUDTKind == 1) result.listUDT_class.append(nID);
@@ -676,233 +723,233 @@ void XWinPDB::_testSymbol(IDiaSymbol *pSymbol)
     IDiaInputAssemblyFile *iafTest;
 
     if (pSymbol->findInputAssemblyFile(&iafTest) == S_OK) qDebug("findInputAssemblyFile");
-    if (pSymbol->get_PGODynamicInstructionCount(&ullTest) == S_OK) qDebug("get_PGODynamicInstructionCount: %d", _pdb_sym_get_PGODynamicInstructionCount(pSymbol));
-    if (pSymbol->get_PGOEdgeCount(&dwTest) == S_OK) qDebug("get_PGOEdgeCount: %d", _pdb_sym_get_PGOEdgeCount(pSymbol));
-    if (pSymbol->get_PGOEntryCount(&dwTest) == S_OK) qDebug("get_PGOEntryCount: %d", _pdb_sym_get_PGOEntryCount(pSymbol));
-    if (pSymbol->get_RValueReference(&bTest) == S_OK) qDebug("get_RValueReference: %d", _pdb_sym_get_RValueReference(pSymbol));
-    if (pSymbol->get_access(&dwTest) == S_OK) qDebug("get_access: %d", _pdb_sym_get_access(pSymbol));
-    if (pSymbol->get_addressOffset(&dwTest) == S_OK) qDebug("get_addressOffset: %d", _pdb_sym_get_addressOffset(pSymbol));
-    if (pSymbol->get_addressSection(&dwTest) == S_OK) qDebug("get_addressSection: %d", _pdb_sym_get_addressSection(pSymbol));
-    if (pSymbol->get_addressTaken(&bTest) == S_OK) qDebug("get_addressTaken: %d", _pdb_sym_get_addressTaken(pSymbol));
-    if (pSymbol->get_age(&dwTest) == S_OK) qDebug("get_age: %d", _pdb_sym_get_age(pSymbol));
+    if (pSymbol->get_PGODynamicInstructionCount(&ullTest) == S_OK) qDebug("get_PGODynamicInstructionCount: %d", _pdb_result_debug(_pdb_sym_get_PGODynamicInstructionCount(pSymbol)));
+    if (pSymbol->get_PGOEdgeCount(&dwTest) == S_OK) qDebug("get_PGOEdgeCount: %d", _pdb_result_debug(_pdb_sym_get_PGOEdgeCount(pSymbol)));
+    if (pSymbol->get_PGOEntryCount(&dwTest) == S_OK) qDebug("get_PGOEntryCount: %d", _pdb_result_debug(_pdb_sym_get_PGOEntryCount(pSymbol)));
+    if (pSymbol->get_RValueReference(&bTest) == S_OK) qDebug("get_RValueReference: %d", _pdb_result_debug(_pdb_sym_get_RValueReference(pSymbol)));
+    if (pSymbol->get_access(&dwTest) == S_OK) qDebug("get_access: %d", _pdb_result_debug(_pdb_sym_get_access(pSymbol)));
+    if (pSymbol->get_addressOffset(&dwTest) == S_OK) qDebug("get_addressOffset: %d", _pdb_result_debug(_pdb_sym_get_addressOffset(pSymbol)));
+    if (pSymbol->get_addressSection(&dwTest) == S_OK) qDebug("get_addressSection: %d", _pdb_result_debug(_pdb_sym_get_addressSection(pSymbol)));
+    if (pSymbol->get_addressTaken(&bTest) == S_OK) qDebug("get_addressTaken: %d", _pdb_result_debug(_pdb_sym_get_addressTaken(pSymbol)));
+    if (pSymbol->get_age(&dwTest) == S_OK) qDebug("get_age: %d", _pdb_result_debug(_pdb_sym_get_age(pSymbol)));
     if (pSymbol->get_arrayIndexType(&pSymbolTest) == S_OK) qDebug("get_arrayIndexType");
-    if (pSymbol->get_arrayIndexTypeId(&dwTest) == S_OK) qDebug("get_arrayIndexTypeId: %d", _pdb_sym_get_arrayIndexTypeId(pSymbol));
-    if (pSymbol->get_backEndBuild(&dwTest) == S_OK) qDebug("get_backEndBuild: %d", _pdb_sym_get_backEndBuild(pSymbol));
-    if (pSymbol->get_backEndMajor(&dwTest) == S_OK) qDebug("get_backEndMajor: %d", _pdb_sym_get_backEndMajor(pSymbol));
-    if (pSymbol->get_backEndMinor(&dwTest) == S_OK) qDebug("get_backEndMinor: %d", _pdb_sym_get_backEndMinor(pSymbol));
-    if (pSymbol->get_backEndQFE(&dwTest) == S_OK) qDebug("get_backEndQFE: %d", _pdb_sym_get_backEndQFE(pSymbol));
-    if (pSymbol->get_baseDataOffset(&dwTest) == S_OK) qDebug("get_baseDataOffset: %d", _pdb_sym_get_baseDataOffset(pSymbol));
-    if (pSymbol->get_baseDataSlot(&dwTest) == S_OK) qDebug("get_baseDataSlot: %d", _pdb_sym_get_baseDataSlot(pSymbol));
+    if (pSymbol->get_arrayIndexTypeId(&dwTest) == S_OK) qDebug("get_arrayIndexTypeId: %d", _pdb_result_debug(_pdb_sym_get_arrayIndexTypeId(pSymbol)));
+    if (pSymbol->get_backEndBuild(&dwTest) == S_OK) qDebug("get_backEndBuild: %d", _pdb_result_debug(_pdb_sym_get_backEndBuild(pSymbol)));
+    if (pSymbol->get_backEndMajor(&dwTest) == S_OK) qDebug("get_backEndMajor: %d", _pdb_result_debug(_pdb_sym_get_backEndMajor(pSymbol)));
+    if (pSymbol->get_backEndMinor(&dwTest) == S_OK) qDebug("get_backEndMinor: %d", _pdb_result_debug(_pdb_sym_get_backEndMinor(pSymbol)));
+    if (pSymbol->get_backEndQFE(&dwTest) == S_OK) qDebug("get_backEndQFE: %d", _pdb_result_debug(_pdb_sym_get_backEndQFE(pSymbol)));
+    if (pSymbol->get_baseDataOffset(&dwTest) == S_OK) qDebug("get_baseDataOffset: %d", _pdb_result_debug(_pdb_sym_get_baseDataOffset(pSymbol)));
+    if (pSymbol->get_baseDataSlot(&dwTest) == S_OK) qDebug("get_baseDataSlot: %d", _pdb_result_debug(_pdb_sym_get_baseDataSlot(pSymbol)));
     if (pSymbol->get_baseSymbol(&pSymbolTest) == S_OK) qDebug("get_baseSymbol");
-    if (pSymbol->get_baseSymbolId(&dwTest) == S_OK) qDebug("get_baseSymbolId: %d", _pdb_sym_get_baseSymbolId(pSymbol));
-    if (pSymbol->get_baseType(&dwTest) == S_OK) qDebug("get_baseType: %d", _pdb_sym_get_baseType(pSymbol));
-    if (pSymbol->get_bindID(&dwTest) == S_OK) qDebug("get_bindID: %d", _pdb_sym_get_bindID(pSymbol));
-    if (pSymbol->get_bindSlot(&dwTest) == S_OK) qDebug("get_bindSlot: %d", _pdb_sym_get_bindSlot(pSymbol));
-    if (pSymbol->get_bindSpace(&dwTest) == S_OK) qDebug("get_bindSpace: %d", _pdb_sym_get_bindSpace(pSymbol));
-    if (pSymbol->get_bitPosition(&dwTest) == S_OK) qDebug("get_bitPosition: %d", _pdb_sym_get_bitPosition(pSymbol));
-    if (pSymbol->get_builtInKind(&dwTest) == S_OK) qDebug("get_builtInKind: %d", _pdb_sym_get_builtInKind(pSymbol));
-    if (pSymbol->get_callingConvention(&dwTest) == S_OK) qDebug("get_callingConvention: %d", _pdb_sym_get_callingConvention(pSymbol));
-    if (pSymbol->get_characteristics(&dwTest) == S_OK) qDebug("get_characteristics: %d", _pdb_sym_get_characteristics(pSymbol));
+    if (pSymbol->get_baseSymbolId(&dwTest) == S_OK) qDebug("get_baseSymbolId: %d", _pdb_result_debug(_pdb_sym_get_baseSymbolId(pSymbol)));
+    if (pSymbol->get_baseType(&dwTest) == S_OK) qDebug("get_baseType: %d", _pdb_result_debug(_pdb_sym_get_baseType(pSymbol)));
+    if (pSymbol->get_bindID(&dwTest) == S_OK) qDebug("get_bindID: %d", _pdb_result_debug(_pdb_sym_get_bindID(pSymbol)));
+    if (pSymbol->get_bindSlot(&dwTest) == S_OK) qDebug("get_bindSlot: %d", _pdb_result_debug(_pdb_sym_get_bindSlot(pSymbol)));
+    if (pSymbol->get_bindSpace(&dwTest) == S_OK) qDebug("get_bindSpace: %d", _pdb_result_debug(_pdb_sym_get_bindSpace(pSymbol)));
+    if (pSymbol->get_bitPosition(&dwTest) == S_OK) qDebug("get_bitPosition: %d", _pdb_result_debug(_pdb_sym_get_bitPosition(pSymbol)));
+    if (pSymbol->get_builtInKind(&dwTest) == S_OK) qDebug("get_builtInKind: %d", _pdb_result_debug(_pdb_sym_get_builtInKind(pSymbol)));
+    if (pSymbol->get_callingConvention(&dwTest) == S_OK) qDebug("get_callingConvention: %d", _pdb_result_debug(_pdb_sym_get_callingConvention(pSymbol)));
+    if (pSymbol->get_characteristics(&dwTest) == S_OK) qDebug("get_characteristics: %d", _pdb_result_debug(_pdb_sym_get_characteristics(pSymbol)));
     if (pSymbol->get_classParent(&pSymbolTest) == S_OK) qDebug("get_classParent");
-    if (pSymbol->get_classParentId(&dwTest) == S_OK) qDebug("get_classParentId: %d", _pdb_sym_get_classParentId(pSymbol));
-    if (pSymbol->get_code(&bTest) == S_OK) qDebug("get_code: %d", _pdb_sym_get_code(pSymbol));
+    if (pSymbol->get_classParentId(&dwTest) == S_OK) qDebug("get_classParentId: %d", _pdb_result_debug(_pdb_sym_get_classParentId(pSymbol)));
+    if (pSymbol->get_code(&bTest) == S_OK) qDebug("get_code: %d", _pdb_result_debug(_pdb_sym_get_code(pSymbol)));
     if (pSymbol->get_coffGroup(&pSymbolTest) == S_OK) qDebug("get_coffGroup");
-    if (pSymbol->get_compilerGenerated(&bTest) == S_OK) qDebug("get_compilerGenerated: %d", _pdb_sym_get_compilerGenerated(pSymbol));
-    if (pSymbol->get_compilerName(&strTest) == S_OK) qDebug("get_compilerName: %s", _pdb_sym_get_compilerName(pSymbol).toLatin1().data());
-    if (pSymbol->get_constType(&bTest) == S_OK) qDebug("get_constType: %d", _pdb_sym_get_constType(pSymbol));
-    if (pSymbol->get_constantExport(&bTest) == S_OK) qDebug("get_constantExport: %d", _pdb_sym_get_constantExport(pSymbol));
-    if (pSymbol->get_constructor(&bTest) == S_OK) qDebug("get_constructor: %d", _pdb_sym_get_constructor(pSymbol));
+    if (pSymbol->get_compilerGenerated(&bTest) == S_OK) qDebug("get_compilerGenerated: %d", _pdb_result_debug(_pdb_sym_get_compilerGenerated(pSymbol)));
+    if (pSymbol->get_compilerName(&strTest) == S_OK) qDebug("get_compilerName: %s", _pdb_result_string(_pdb_sym_get_compilerName(pSymbol)).toLatin1().data());
+    if (pSymbol->get_constType(&bTest) == S_OK) qDebug("get_constType: %d", _pdb_result_debug(_pdb_sym_get_constType(pSymbol)));
+    if (pSymbol->get_constantExport(&bTest) == S_OK) qDebug("get_constantExport: %d", _pdb_result_debug(_pdb_sym_get_constantExport(pSymbol)));
+    if (pSymbol->get_constructor(&bTest) == S_OK) qDebug("get_constructor: %d", _pdb_result_debug(_pdb_sym_get_constructor(pSymbol)));
     if (pSymbol->get_container(&pSymbolTest) == S_OK) qDebug("get_container");
-    if (pSymbol->get_count(&dwTest) == S_OK) qDebug("get_count: %d", _pdb_sym_get_count(pSymbol));
-    if (pSymbol->get_countLiveRanges(&dwTest) == S_OK) qDebug("get_countLiveRanges: %d", _pdb_sym_get_countLiveRanges(pSymbol));
-    if (pSymbol->get_customCallingConvention(&bTest) == S_OK) qDebug("get_customCallingConvention: %d", _pdb_sym_get_customCallingConvention(pSymbol));
+    if (pSymbol->get_count(&dwTest) == S_OK) qDebug("get_count: %d", _pdb_result_debug(_pdb_sym_get_count(pSymbol)));
+    if (pSymbol->get_countLiveRanges(&dwTest) == S_OK) qDebug("get_countLiveRanges: %d", _pdb_result_debug(_pdb_sym_get_countLiveRanges(pSymbol)));
+    if (pSymbol->get_customCallingConvention(&bTest) == S_OK) qDebug("get_customCallingConvention: %d", _pdb_result_debug(_pdb_sym_get_customCallingConvention(pSymbol)));
     if (pSymbol->get_dataBytes(256, &dwTest, bData) == S_OK) qDebug("get_dataBytes");
-    if (pSymbol->get_dataExport(&bTest) == S_OK) qDebug("get_dataExport: %d", _pdb_sym_get_dataExport(pSymbol));
-    if (pSymbol->get_dataKind(&dwTest) == S_OK) qDebug("get_dataKind: %d", _pdb_sym_get_dataKind(pSymbol));
-    if (pSymbol->get_editAndContinueEnabled(&bTest) == S_OK) qDebug("get_editAndContinueEnabled: %d", _pdb_sym_get_editAndContinueEnabled(pSymbol));
-    if (pSymbol->get_exceptionHandlerAddressOffset(&dwTest) == S_OK) qDebug("get_exceptionHandlerAddressOffset: %d", _pdb_sym_get_exceptionHandlerAddressOffset(pSymbol));
+    if (pSymbol->get_dataExport(&bTest) == S_OK) qDebug("get_dataExport: %d", _pdb_result_debug(_pdb_sym_get_dataExport(pSymbol)));
+    if (pSymbol->get_dataKind(&dwTest) == S_OK) qDebug("get_dataKind: %d", _pdb_result_debug(_pdb_sym_get_dataKind(pSymbol)));
+    if (pSymbol->get_editAndContinueEnabled(&bTest) == S_OK) qDebug("get_editAndContinueEnabled: %d", _pdb_result_debug(_pdb_sym_get_editAndContinueEnabled(pSymbol)));
+    if (pSymbol->get_exceptionHandlerAddressOffset(&dwTest) == S_OK) qDebug("get_exceptionHandlerAddressOffset: %d", _pdb_result_debug(_pdb_sym_get_exceptionHandlerAddressOffset(pSymbol)));
     if (pSymbol->get_exceptionHandlerAddressSection(&dwTest) == S_OK)
-        qDebug("get_exceptionHandlerAddressSection: %d", _pdb_sym_get_exceptionHandlerAddressSection(pSymbol));
+        qDebug("get_exceptionHandlerAddressSection: %d", _pdb_result_debug(_pdb_sym_get_exceptionHandlerAddressSection(pSymbol)));
     if (pSymbol->get_exceptionHandlerRelativeVirtualAddress(&dwTest) == S_OK)
-        qDebug("get_exceptionHandlerRelativeVirtualAddress: %d", _pdb_sym_get_exceptionHandlerRelativeVirtualAddress(pSymbol));
+        qDebug("get_exceptionHandlerRelativeVirtualAddress: %d", _pdb_result_debug(_pdb_sym_get_exceptionHandlerRelativeVirtualAddress(pSymbol)));
     if (pSymbol->get_exceptionHandlerVirtualAddress(&ullTest) == S_OK)
-        qDebug("get_exceptionHandlerVirtualAddress: %d", _pdb_sym_get_exceptionHandlerVirtualAddress(pSymbol));
+        qDebug("get_exceptionHandlerVirtualAddress: %d", _pdb_result_debug(_pdb_sym_get_exceptionHandlerVirtualAddress(pSymbol)));
     if (pSymbol->get_exportHasExplicitlyAssignedOrdinal(&bTest) == S_OK)
-        qDebug("get_exportHasExplicitlyAssignedOrdinal: %d", _pdb_sym_get_exportHasExplicitlyAssignedOrdinal(pSymbol));
-    if (pSymbol->get_exportIsForwarder(&bTest) == S_OK) qDebug("get_exportIsForwarder: %d", _pdb_sym_get_exportIsForwarder(pSymbol));
-    if (pSymbol->get_farReturn(&bTest) == S_OK) qDebug("get_farReturn: %d", _pdb_sym_get_farReturn(pSymbol));
-    if (pSymbol->get_finalLiveStaticSize(&dwTest) == S_OK) qDebug("get_finalLiveStaticSize: %d", _pdb_sym_get_finalLiveStaticSize(pSymbol));
-    if (pSymbol->get_framePointerPresent(&bTest) == S_OK) qDebug("get_framePointerPresent: %d", _pdb_sym_get_framePointerPresent(pSymbol));
-    if (pSymbol->get_frameSize(&dwTest) == S_OK) qDebug("get_frameSize: %d", _pdb_sym_get_frameSize(pSymbol));
-    if (pSymbol->get_frontEndBuild(&dwTest) == S_OK) qDebug("get_frontEndBuild: %d", _pdb_sym_get_frontEndBuild(pSymbol));
-    if (pSymbol->get_frontEndMajor(&dwTest) == S_OK) qDebug("get_frontEndMajor: %d", _pdb_sym_get_frontEndMajor(pSymbol));
-    if (pSymbol->get_frontEndMinor(&dwTest) == S_OK) qDebug("get_frontEndMinor: %d", _pdb_sym_get_frontEndMinor(pSymbol));
-    if (pSymbol->get_frontEndQFE(&dwTest) == S_OK) qDebug("get_frontEndQFE: %d", _pdb_sym_get_frontEndQFE(pSymbol));
-    if (pSymbol->get_function(&bTest) == S_OK) qDebug("get_function: %d", _pdb_sym_get_function(pSymbol));
+        qDebug("get_exportHasExplicitlyAssignedOrdinal: %d", _pdb_result_debug(_pdb_sym_get_exportHasExplicitlyAssignedOrdinal(pSymbol)));
+    if (pSymbol->get_exportIsForwarder(&bTest) == S_OK) qDebug("get_exportIsForwarder: %d", _pdb_result_debug(_pdb_sym_get_exportIsForwarder(pSymbol)));
+    if (pSymbol->get_farReturn(&bTest) == S_OK) qDebug("get_farReturn: %d", _pdb_result_debug(_pdb_sym_get_farReturn(pSymbol)));
+    if (pSymbol->get_finalLiveStaticSize(&dwTest) == S_OK) qDebug("get_finalLiveStaticSize: %d", _pdb_result_debug(_pdb_sym_get_finalLiveStaticSize(pSymbol)));
+    if (pSymbol->get_framePointerPresent(&bTest) == S_OK) qDebug("get_framePointerPresent: %d", _pdb_result_debug(_pdb_sym_get_framePointerPresent(pSymbol)));
+    if (pSymbol->get_frameSize(&dwTest) == S_OK) qDebug("get_frameSize: %d", _pdb_result_debug(_pdb_sym_get_frameSize(pSymbol)));
+    if (pSymbol->get_frontEndBuild(&dwTest) == S_OK) qDebug("get_frontEndBuild: %d", _pdb_result_debug(_pdb_sym_get_frontEndBuild(pSymbol)));
+    if (pSymbol->get_frontEndMajor(&dwTest) == S_OK) qDebug("get_frontEndMajor: %d", _pdb_result_debug(_pdb_sym_get_frontEndMajor(pSymbol)));
+    if (pSymbol->get_frontEndMinor(&dwTest) == S_OK) qDebug("get_frontEndMinor: %d", _pdb_result_debug(_pdb_sym_get_frontEndMinor(pSymbol)));
+    if (pSymbol->get_frontEndQFE(&dwTest) == S_OK) qDebug("get_frontEndQFE: %d", _pdb_result_debug(_pdb_sym_get_frontEndQFE(pSymbol)));
+    if (pSymbol->get_function(&bTest) == S_OK) qDebug("get_function: %d", _pdb_result_debug(_pdb_sym_get_function(pSymbol)));
     if (pSymbol->get_guid(&guidTest) == S_OK) qDebug("get_guid");
-    if (pSymbol->get_hasAlloca(&bTest) == S_OK) qDebug("get_hasAlloca: %d", _pdb_sym_get_hasAlloca(pSymbol));
-    if (pSymbol->get_hasAssignmentOperator(&bTest) == S_OK) qDebug("get_hasAssignmentOperator: %d", _pdb_sym_get_hasAssignmentOperator(pSymbol));
-    if (pSymbol->get_hasCastOperator(&bTest) == S_OK) qDebug("get_hasCastOperator: %d", _pdb_sym_get_hasCastOperator(pSymbol));
-    if (pSymbol->get_hasControlFlowCheck(&bTest) == S_OK) qDebug("get_hasControlFlowCheck: %d", _pdb_sym_get_hasControlFlowCheck(pSymbol));
-    if (pSymbol->get_hasDebugInfo(&bTest) == S_OK) qDebug("get_hasDebugInfo: %d", _pdb_sym_get_hasDebugInfo(pSymbol));
-    if (pSymbol->get_hasEH(&bTest) == S_OK) qDebug("get_hasEH: %d", _pdb_sym_get_hasEH(pSymbol));
-    if (pSymbol->get_hasEHa(&bTest) == S_OK) qDebug("get_hasEHa: %d", _pdb_sym_get_hasEHa(pSymbol));
-    if (pSymbol->get_hasInlAsm(&bTest) == S_OK) qDebug("get_hasInlAsm: %d", _pdb_sym_get_hasInlAsm(pSymbol));
-    if (pSymbol->get_hasLongJump(&bTest) == S_OK) qDebug("get_hasLongJump: %d", _pdb_sym_get_hasLongJump(pSymbol));
-    if (pSymbol->get_hasManagedCode(&bTest) == S_OK) qDebug("get_hasManagedCode: %d", _pdb_sym_get_hasManagedCode(pSymbol));
-    if (pSymbol->get_hasNestedTypes(&bTest) == S_OK) qDebug("get_hasNestedTypes: %d", _pdb_sym_get_hasNestedTypes(pSymbol));
-    if (pSymbol->get_hasSEH(&bTest) == S_OK) qDebug("get_hasSEH: %d", _pdb_sym_get_hasSEH(pSymbol));
-    if (pSymbol->get_hasSecurityChecks(&bTest) == S_OK) qDebug("get_hasSecurityChecks: %d", _pdb_sym_get_hasSecurityChecks(pSymbol));
-    if (pSymbol->get_hasSetJump(&bTest) == S_OK) qDebug("get_hasSetJump: %d", _pdb_sym_get_hasSetJump(pSymbol));
-    if (pSymbol->get_hasValidPGOCounts(&bTest) == S_OK) qDebug("get_hasValidPGOCounts: %d", _pdb_sym_get_hasValidPGOCounts(pSymbol));
-    if (pSymbol->get_hfaDouble(&bTest) == S_OK) qDebug("get_hfaDouble: %d", _pdb_sym_get_hfaDouble(pSymbol));
-    if (pSymbol->get_hfaFloat(&bTest) == S_OK) qDebug("get_hfaFloat: %d", _pdb_sym_get_hfaFloat(pSymbol));
-    if (pSymbol->get_indirectVirtualBaseClass(&bTest) == S_OK) qDebug("get_indirectVirtualBaseClass: %d", _pdb_sym_get_indirectVirtualBaseClass(pSymbol));
-    if (pSymbol->get_inlSpec(&bTest) == S_OK) qDebug("get_inlSpec: %d", _pdb_sym_get_inlSpec(pSymbol));
-    if (pSymbol->get_interruptReturn(&bTest) == S_OK) qDebug("get_interruptReturn: %d", _pdb_sym_get_interruptReturn(pSymbol));
-    if (pSymbol->get_intrinsic(&bTest) == S_OK) qDebug("get_intrinsic: %d", _pdb_sym_get_intrinsic(pSymbol));
-    if (pSymbol->get_intro(&bTest) == S_OK) qDebug("get_intro: %d", _pdb_sym_get_intro(pSymbol));
-    if (pSymbol->get_isAcceleratorGroupSharedLocal(&bTest) == S_OK) qDebug("get_isAcceleratorGroupSharedLocal: %d", _pdb_sym_get_isAcceleratorGroupSharedLocal(pSymbol));
+    if (pSymbol->get_hasAlloca(&bTest) == S_OK) qDebug("get_hasAlloca: %d", _pdb_result_debug(_pdb_sym_get_hasAlloca(pSymbol)));
+    if (pSymbol->get_hasAssignmentOperator(&bTest) == S_OK) qDebug("get_hasAssignmentOperator: %d", _pdb_result_debug(_pdb_sym_get_hasAssignmentOperator(pSymbol)));
+    if (pSymbol->get_hasCastOperator(&bTest) == S_OK) qDebug("get_hasCastOperator: %d", _pdb_result_debug(_pdb_sym_get_hasCastOperator(pSymbol)));
+    if (pSymbol->get_hasControlFlowCheck(&bTest) == S_OK) qDebug("get_hasControlFlowCheck: %d", _pdb_result_debug(_pdb_sym_get_hasControlFlowCheck(pSymbol)));
+    if (pSymbol->get_hasDebugInfo(&bTest) == S_OK) qDebug("get_hasDebugInfo: %d", _pdb_result_debug(_pdb_sym_get_hasDebugInfo(pSymbol)));
+    if (pSymbol->get_hasEH(&bTest) == S_OK) qDebug("get_hasEH: %d", _pdb_result_debug(_pdb_sym_get_hasEH(pSymbol)));
+    if (pSymbol->get_hasEHa(&bTest) == S_OK) qDebug("get_hasEHa: %d", _pdb_result_debug(_pdb_sym_get_hasEHa(pSymbol)));
+    if (pSymbol->get_hasInlAsm(&bTest) == S_OK) qDebug("get_hasInlAsm: %d", _pdb_result_debug(_pdb_sym_get_hasInlAsm(pSymbol)));
+    if (pSymbol->get_hasLongJump(&bTest) == S_OK) qDebug("get_hasLongJump: %d", _pdb_result_debug(_pdb_sym_get_hasLongJump(pSymbol)));
+    if (pSymbol->get_hasManagedCode(&bTest) == S_OK) qDebug("get_hasManagedCode: %d", _pdb_result_debug(_pdb_sym_get_hasManagedCode(pSymbol)));
+    if (pSymbol->get_hasNestedTypes(&bTest) == S_OK) qDebug("get_hasNestedTypes: %d", _pdb_result_debug(_pdb_sym_get_hasNestedTypes(pSymbol)));
+    if (pSymbol->get_hasSEH(&bTest) == S_OK) qDebug("get_hasSEH: %d", _pdb_result_debug(_pdb_sym_get_hasSEH(pSymbol)));
+    if (pSymbol->get_hasSecurityChecks(&bTest) == S_OK) qDebug("get_hasSecurityChecks: %d", _pdb_result_debug(_pdb_sym_get_hasSecurityChecks(pSymbol)));
+    if (pSymbol->get_hasSetJump(&bTest) == S_OK) qDebug("get_hasSetJump: %d", _pdb_result_debug(_pdb_sym_get_hasSetJump(pSymbol)));
+    if (pSymbol->get_hasValidPGOCounts(&bTest) == S_OK) qDebug("get_hasValidPGOCounts: %d", _pdb_result_debug(_pdb_sym_get_hasValidPGOCounts(pSymbol)));
+    if (pSymbol->get_hfaDouble(&bTest) == S_OK) qDebug("get_hfaDouble: %d", _pdb_result_debug(_pdb_sym_get_hfaDouble(pSymbol)));
+    if (pSymbol->get_hfaFloat(&bTest) == S_OK) qDebug("get_hfaFloat: %d", _pdb_result_debug(_pdb_sym_get_hfaFloat(pSymbol)));
+    if (pSymbol->get_indirectVirtualBaseClass(&bTest) == S_OK) qDebug("get_indirectVirtualBaseClass: %d", _pdb_result_debug(_pdb_sym_get_indirectVirtualBaseClass(pSymbol)));
+    if (pSymbol->get_inlSpec(&bTest) == S_OK) qDebug("get_inlSpec: %d", _pdb_result_debug(_pdb_sym_get_inlSpec(pSymbol)));
+    if (pSymbol->get_interruptReturn(&bTest) == S_OK) qDebug("get_interruptReturn: %d", _pdb_result_debug(_pdb_sym_get_interruptReturn(pSymbol)));
+    if (pSymbol->get_intrinsic(&bTest) == S_OK) qDebug("get_intrinsic: %d", _pdb_result_debug(_pdb_sym_get_intrinsic(pSymbol)));
+    if (pSymbol->get_intro(&bTest) == S_OK) qDebug("get_intro: %d", _pdb_result_debug(_pdb_sym_get_intro(pSymbol)));
+    if (pSymbol->get_isAcceleratorGroupSharedLocal(&bTest) == S_OK) qDebug("get_isAcceleratorGroupSharedLocal: %d", _pdb_result_debug(_pdb_sym_get_isAcceleratorGroupSharedLocal(pSymbol)));
     if (pSymbol->get_isAcceleratorPointerTagLiveRange(&bTest) == S_OK)
-        qDebug("get_isAcceleratorPointerTagLiveRange: %d", _pdb_sym_get_isAcceleratorPointerTagLiveRange(pSymbol));
-    if (pSymbol->get_isAcceleratorStubFunction(&bTest) == S_OK) qDebug("get_isAcceleratorStubFunction: %d", _pdb_sym_get_isAcceleratorStubFunction(pSymbol));
-    if (pSymbol->get_isAggregated(&bTest) == S_OK) qDebug("get_isAggregated: %d", _pdb_sym_get_isAggregated(pSymbol));
-    if (pSymbol->get_isCTypes(&bTest) == S_OK) qDebug("get_isCTypes: %d", _pdb_sym_get_isCTypes(pSymbol));
-    if (pSymbol->get_isCVTCIL(&bTest) == S_OK) qDebug("get_isCVTCIL: %d", _pdb_sym_get_isCVTCIL(pSymbol));
-    if (pSymbol->get_isConstructorVirtualBase(&bTest) == S_OK) qDebug("get_isConstructorVirtualBase: %d", _pdb_sym_get_isConstructorVirtualBase(pSymbol));
-    if (pSymbol->get_isCxxReturnUdt(&bTest) == S_OK) qDebug("get_isCxxReturnUdt: %d", _pdb_sym_get_isCxxReturnUdt(pSymbol));
-    if (pSymbol->get_isDataAligned(&bTest) == S_OK) qDebug("get_isDataAligned: %d", _pdb_sym_get_isDataAligned(pSymbol));
-    if (pSymbol->get_isHLSLData(&bTest) == S_OK) qDebug("get_isHLSLData: %d", _pdb_sym_get_isHLSLData(pSymbol));
-    if (pSymbol->get_isHotpatchable(&bTest) == S_OK) qDebug("get_isHotpatchable: %d", _pdb_sym_get_isHotpatchable(pSymbol));
-    if (pSymbol->get_isInterfaceUdt(&bTest) == S_OK) qDebug("get_isInterfaceUdt: %d", _pdb_sym_get_isInterfaceUdt(pSymbol));
-    if (pSymbol->get_isLTCG(&bTest) == S_OK) qDebug("get_isLTCG: %d", _pdb_sym_get_isLTCG(pSymbol));
+        qDebug("get_isAcceleratorPointerTagLiveRange: %d", _pdb_result_debug(_pdb_sym_get_isAcceleratorPointerTagLiveRange(pSymbol)));
+    if (pSymbol->get_isAcceleratorStubFunction(&bTest) == S_OK) qDebug("get_isAcceleratorStubFunction: %d", _pdb_result_debug(_pdb_sym_get_isAcceleratorStubFunction(pSymbol)));
+    if (pSymbol->get_isAggregated(&bTest) == S_OK) qDebug("get_isAggregated: %d", _pdb_result_debug(_pdb_sym_get_isAggregated(pSymbol)));
+    if (pSymbol->get_isCTypes(&bTest) == S_OK) qDebug("get_isCTypes: %d", _pdb_result_debug(_pdb_sym_get_isCTypes(pSymbol)));
+    if (pSymbol->get_isCVTCIL(&bTest) == S_OK) qDebug("get_isCVTCIL: %d", _pdb_result_debug(_pdb_sym_get_isCVTCIL(pSymbol)));
+    if (pSymbol->get_isConstructorVirtualBase(&bTest) == S_OK) qDebug("get_isConstructorVirtualBase: %d", _pdb_result_debug(_pdb_sym_get_isConstructorVirtualBase(pSymbol)));
+    if (pSymbol->get_isCxxReturnUdt(&bTest) == S_OK) qDebug("get_isCxxReturnUdt: %d", _pdb_result_debug(_pdb_sym_get_isCxxReturnUdt(pSymbol)));
+    if (pSymbol->get_isDataAligned(&bTest) == S_OK) qDebug("get_isDataAligned: %d", _pdb_result_debug(_pdb_sym_get_isDataAligned(pSymbol)));
+    if (pSymbol->get_isHLSLData(&bTest) == S_OK) qDebug("get_isHLSLData: %d", _pdb_result_debug(_pdb_sym_get_isHLSLData(pSymbol)));
+    if (pSymbol->get_isHotpatchable(&bTest) == S_OK) qDebug("get_isHotpatchable: %d", _pdb_result_debug(_pdb_sym_get_isHotpatchable(pSymbol)));
+    if (pSymbol->get_isInterfaceUdt(&bTest) == S_OK) qDebug("get_isInterfaceUdt: %d", _pdb_result_debug(_pdb_sym_get_isInterfaceUdt(pSymbol)));
+    if (pSymbol->get_isLTCG(&bTest) == S_OK) qDebug("get_isLTCG: %d", _pdb_result_debug(_pdb_sym_get_isLTCG(pSymbol)));
     if (pSymbol->get_isLocationControlFlowDependent(&bTest) == S_OK)
-        qDebug("get_isLocationControlFlowDependent: %d", _pdb_sym_get_isLocationControlFlowDependent(pSymbol));
-    if (pSymbol->get_isMSILNetmodule(&bTest) == S_OK) qDebug("get_isMSILNetmodule: %d", _pdb_sym_get_isMSILNetmodule(pSymbol));
-    if (pSymbol->get_isMatrixRowMajor(&bTest) == S_OK) qDebug("get_isMatrixRowMajor: %d", _pdb_sym_get_isMatrixRowMajor(pSymbol));
-    if (pSymbol->get_isMultipleInheritance(&bTest) == S_OK) qDebug("get_isMultipleInheritance: %d", _pdb_sym_get_isMultipleInheritance(pSymbol));
-    if (pSymbol->get_isNaked(&bTest) == S_OK) qDebug("get_isNaked: %d", _pdb_sym_get_isNaked(pSymbol));
-    if (pSymbol->get_isOptimizedAway(&bTest) == S_OK) qDebug("get_isOptimizedAway: %d", _pdb_sym_get_isOptimizedAway(pSymbol));
-    if (pSymbol->get_isOptimizedForSpeed(&bTest) == S_OK) qDebug("get_isOptimizedForSpeed: %d", _pdb_sym_get_isOptimizedForSpeed(pSymbol));
-    if (pSymbol->get_isPGO(&bTest) == S_OK) qDebug("get_isPGO: %d", _pdb_sym_get_isPGO(pSymbol));
-    if (pSymbol->get_isPointerBasedOnSymbolValue(&bTest) == S_OK) qDebug("get_isPointerBasedOnSymbolValue: %d", _pdb_sym_get_isPointerBasedOnSymbolValue(pSymbol));
-    if (pSymbol->get_isPointerToDataMember(&bTest) == S_OK) qDebug("get_isPointerToDataMember: %d", _pdb_sym_get_isPointerToDataMember(pSymbol));
-    if (pSymbol->get_isPointerToMemberFunction(&bTest) == S_OK) qDebug("get_isPointerToMemberFunction: %d", _pdb_sym_get_isPointerToMemberFunction(pSymbol));
-    if (pSymbol->get_isRefUdt(&bTest) == S_OK) qDebug("get_isRefUdt: %d", _pdb_sym_get_isRefUdt(pSymbol));
-    if (pSymbol->get_isReturnValue(&bTest) == S_OK) qDebug("get_isReturnValue: %d", _pdb_sym_get_isReturnValue(pSymbol));
-    if (pSymbol->get_isSafeBuffers(&bTest) == S_OK) qDebug("get_isSafeBuffers: %d", _pdb_sym_get_isSafeBuffers(pSymbol));
-    if (pSymbol->get_isSdl(&bTest) == S_OK) qDebug("get_isSdl: %d", _pdb_sym_get_isSdl(pSymbol));
-    if (pSymbol->get_isSingleInheritance(&bTest) == S_OK) qDebug("get_isSingleInheritance: %d", _pdb_sym_get_isSingleInheritance(pSymbol));
-    if (pSymbol->get_isSplitted(&bTest) == S_OK) qDebug("get_isSplitted: %d", _pdb_sym_get_isSplitted(pSymbol));
-    if (pSymbol->get_isStatic(&bTest) == S_OK) qDebug("get_isStatic: %d", _pdb_sym_get_isStatic(pSymbol));
-    if (pSymbol->get_isStripped(&bTest) == S_OK) qDebug("get_isStripped: %d", _pdb_sym_get_isStripped(pSymbol));
-    if (pSymbol->get_isValueUdt(&bTest) == S_OK) qDebug("get_isValueUdt: %d", _pdb_sym_get_isValueUdt(pSymbol));
-    if (pSymbol->get_isVirtualInheritance(&bTest) == S_OK) qDebug("get_isVirtualInheritance: %d", _pdb_sym_get_isVirtualInheritance(pSymbol));
-    if (pSymbol->get_isWinRTPointer(&bTest) == S_OK) qDebug("get_isWinRTPointer: %d", _pdb_sym_get_isWinRTPointer(pSymbol));
-    if (pSymbol->get_language(&dwTest) == S_OK) qDebug("get_language: %d", _pdb_sym_get_language(pSymbol));
-    if (pSymbol->get_length(&ullTest) == S_OK) qDebug("get_length: %d", _pdb_sym_get_length(pSymbol));
+        qDebug("get_isLocationControlFlowDependent: %d", _pdb_result_debug(_pdb_sym_get_isLocationControlFlowDependent(pSymbol)));
+    if (pSymbol->get_isMSILNetmodule(&bTest) == S_OK) qDebug("get_isMSILNetmodule: %d", _pdb_result_debug(_pdb_sym_get_isMSILNetmodule(pSymbol)));
+    if (pSymbol->get_isMatrixRowMajor(&bTest) == S_OK) qDebug("get_isMatrixRowMajor: %d", _pdb_result_debug(_pdb_sym_get_isMatrixRowMajor(pSymbol)));
+    if (pSymbol->get_isMultipleInheritance(&bTest) == S_OK) qDebug("get_isMultipleInheritance: %d", _pdb_result_debug(_pdb_sym_get_isMultipleInheritance(pSymbol)));
+    if (pSymbol->get_isNaked(&bTest) == S_OK) qDebug("get_isNaked: %d", _pdb_result_debug(_pdb_sym_get_isNaked(pSymbol)));
+    if (pSymbol->get_isOptimizedAway(&bTest) == S_OK) qDebug("get_isOptimizedAway: %d", _pdb_result_debug(_pdb_sym_get_isOptimizedAway(pSymbol)));
+    if (pSymbol->get_isOptimizedForSpeed(&bTest) == S_OK) qDebug("get_isOptimizedForSpeed: %d", _pdb_result_debug(_pdb_sym_get_isOptimizedForSpeed(pSymbol)));
+    if (pSymbol->get_isPGO(&bTest) == S_OK) qDebug("get_isPGO: %d", _pdb_result_debug(_pdb_sym_get_isPGO(pSymbol)));
+    if (pSymbol->get_isPointerBasedOnSymbolValue(&bTest) == S_OK) qDebug("get_isPointerBasedOnSymbolValue: %d", _pdb_result_debug(_pdb_sym_get_isPointerBasedOnSymbolValue(pSymbol)));
+    if (pSymbol->get_isPointerToDataMember(&bTest) == S_OK) qDebug("get_isPointerToDataMember: %d", _pdb_result_debug(_pdb_sym_get_isPointerToDataMember(pSymbol)));
+    if (pSymbol->get_isPointerToMemberFunction(&bTest) == S_OK) qDebug("get_isPointerToMemberFunction: %d", _pdb_result_debug(_pdb_sym_get_isPointerToMemberFunction(pSymbol)));
+    if (pSymbol->get_isRefUdt(&bTest) == S_OK) qDebug("get_isRefUdt: %d", _pdb_result_debug(_pdb_sym_get_isRefUdt(pSymbol)));
+    if (pSymbol->get_isReturnValue(&bTest) == S_OK) qDebug("get_isReturnValue: %d", _pdb_result_debug(_pdb_sym_get_isReturnValue(pSymbol)));
+    if (pSymbol->get_isSafeBuffers(&bTest) == S_OK) qDebug("get_isSafeBuffers: %d", _pdb_result_debug(_pdb_sym_get_isSafeBuffers(pSymbol)));
+    if (pSymbol->get_isSdl(&bTest) == S_OK) qDebug("get_isSdl: %d", _pdb_result_debug(_pdb_sym_get_isSdl(pSymbol)));
+    if (pSymbol->get_isSingleInheritance(&bTest) == S_OK) qDebug("get_isSingleInheritance: %d", _pdb_result_debug(_pdb_sym_get_isSingleInheritance(pSymbol)));
+    if (pSymbol->get_isSplitted(&bTest) == S_OK) qDebug("get_isSplitted: %d", _pdb_result_debug(_pdb_sym_get_isSplitted(pSymbol)));
+    if (pSymbol->get_isStatic(&bTest) == S_OK) qDebug("get_isStatic: %d", _pdb_result_debug(_pdb_sym_get_isStatic(pSymbol)));
+    if (pSymbol->get_isStripped(&bTest) == S_OK) qDebug("get_isStripped: %d", _pdb_result_debug(_pdb_sym_get_isStripped(pSymbol)));
+    if (pSymbol->get_isValueUdt(&bTest) == S_OK) qDebug("get_isValueUdt: %d", _pdb_result_debug(_pdb_sym_get_isValueUdt(pSymbol)));
+    if (pSymbol->get_isVirtualInheritance(&bTest) == S_OK) qDebug("get_isVirtualInheritance: %d", _pdb_result_debug(_pdb_sym_get_isVirtualInheritance(pSymbol)));
+    if (pSymbol->get_isWinRTPointer(&bTest) == S_OK) qDebug("get_isWinRTPointer: %d", _pdb_result_debug(_pdb_sym_get_isWinRTPointer(pSymbol)));
+    if (pSymbol->get_language(&dwTest) == S_OK) qDebug("get_language: %d", _pdb_result_debug(_pdb_sym_get_language(pSymbol)));
+    if (pSymbol->get_length(&ullTest) == S_OK) qDebug("get_length: %d", _pdb_result_debug(_pdb_sym_get_length(pSymbol)));
     if (pSymbol->get_lexicalParent(&pSymbolTest) == S_OK) qDebug("get_lexicalParent");
-    if (pSymbol->get_lexicalParentId(&dwTest) == S_OK) qDebug("get_lexicalParentId: %d", _pdb_sym_get_lexicalParentId(pSymbol));
-    if (pSymbol->get_libraryName(&strTest) == S_OK) qDebug("get_libraryName: %s", _pdb_sym_get_libraryName(pSymbol).toLatin1().data());
-    if (pSymbol->get_liveRangeLength(&ullTest) == S_OK) qDebug("get_liveRangeLength: %d", _pdb_sym_get_liveRangeLength(pSymbol));
-    if (pSymbol->get_liveRangeStartAddressOffset(&dwTest) == S_OK) qDebug("get_liveRangeStartAddressOffset: %d", _pdb_sym_get_liveRangeStartAddressOffset(pSymbol));
-    if (pSymbol->get_liveRangeStartAddressSection(&dwTest) == S_OK) qDebug("get_liveRangeStartAddressSection: %d", _pdb_sym_get_liveRangeStartAddressSection(pSymbol));
+    if (pSymbol->get_lexicalParentId(&dwTest) == S_OK) qDebug("get_lexicalParentId: %d", _pdb_result_debug(_pdb_sym_get_lexicalParentId(pSymbol)));
+    if (pSymbol->get_libraryName(&strTest) == S_OK) qDebug("get_libraryName: %s", _pdb_result_string(_pdb_sym_get_libraryName(pSymbol)).toLatin1().data());
+    if (pSymbol->get_liveRangeLength(&ullTest) == S_OK) qDebug("get_liveRangeLength: %d", _pdb_result_debug(_pdb_sym_get_liveRangeLength(pSymbol)));
+    if (pSymbol->get_liveRangeStartAddressOffset(&dwTest) == S_OK) qDebug("get_liveRangeStartAddressOffset: %d", _pdb_result_debug(_pdb_sym_get_liveRangeStartAddressOffset(pSymbol)));
+    if (pSymbol->get_liveRangeStartAddressSection(&dwTest) == S_OK) qDebug("get_liveRangeStartAddressSection: %d", _pdb_result_debug(_pdb_sym_get_liveRangeStartAddressSection(pSymbol)));
     if (pSymbol->get_liveRangeStartRelativeVirtualAddress(&dwTest) == S_OK)
-        qDebug("get_liveRangeStartRelativeVirtualAddress: %d", _pdb_sym_get_liveRangeStartRelativeVirtualAddress(pSymbol));
-    if (pSymbol->get_localBasePointerRegisterId(&dwTest) == S_OK) qDebug("get_localBasePointerRegisterId: %d", _pdb_sym_get_localBasePointerRegisterId(pSymbol));
-    if (pSymbol->get_locationType(&dwTest) == S_OK) qDebug("get_locationType: %d", _pdb_sym_get_locationType(pSymbol));
+        qDebug("get_liveRangeStartRelativeVirtualAddress: %d", _pdb_result_debug(_pdb_sym_get_liveRangeStartRelativeVirtualAddress(pSymbol)));
+    if (pSymbol->get_localBasePointerRegisterId(&dwTest) == S_OK) qDebug("get_localBasePointerRegisterId: %d", _pdb_result_debug(_pdb_sym_get_localBasePointerRegisterId(pSymbol)));
+    if (pSymbol->get_locationType(&dwTest) == S_OK) qDebug("get_locationType: %d", _pdb_result_debug(_pdb_sym_get_locationType(pSymbol)));
     if (pSymbol->get_lowerBound(&pSymbolTest) == S_OK) qDebug("get_lowerBound");
-    if (pSymbol->get_lowerBoundId(&dwTest) == S_OK) qDebug("get_lowerBoundId: %d", _pdb_sym_get_lowerBoundId(pSymbol));
-    if (pSymbol->get_machineType(&dwTest) == S_OK) qDebug("get_machineType: %d", _pdb_sym_get_machineType(pSymbol));
-    if (pSymbol->get_managed(&bTest) == S_OK) qDebug("get_managed: %d", _pdb_sym_get_managed(pSymbol));
-    if (pSymbol->get_memorySpaceKind(&dwTest) == S_OK) qDebug("get_memorySpaceKind: %d", _pdb_sym_get_memorySpaceKind(pSymbol));
+    if (pSymbol->get_lowerBoundId(&dwTest) == S_OK) qDebug("get_lowerBoundId: %d", _pdb_result_debug(_pdb_sym_get_lowerBoundId(pSymbol)));
+    if (pSymbol->get_machineType(&dwTest) == S_OK) qDebug("get_machineType: %d", _pdb_result_debug(_pdb_sym_get_machineType(pSymbol)));
+    if (pSymbol->get_managed(&bTest) == S_OK) qDebug("get_managed: %d", _pdb_result_debug(_pdb_sym_get_managed(pSymbol)));
+    if (pSymbol->get_memorySpaceKind(&dwTest) == S_OK) qDebug("get_memorySpaceKind: %d", _pdb_result_debug(_pdb_sym_get_memorySpaceKind(pSymbol)));
     if (pSymbol->get_modifierValues(0, &dwTest, wData) == S_OK) qDebug("get_modifierValues");
-    if (pSymbol->get_msil(&bTest) == S_OK) qDebug("get_msil: %d", _pdb_sym_get_msil(pSymbol));
-    if (pSymbol->get_name(&strTest) == S_OK) qDebug("get_name: %s", _pdb_sym_get_name(pSymbol).toLatin1().data());
-    if (pSymbol->get_nested(&bTest) == S_OK) qDebug("get_nested: %d", _pdb_sym_get_nested(pSymbol));
-    if (pSymbol->get_noInline(&bTest) == S_OK) qDebug("get_noInline: %d", _pdb_sym_get_noInline(pSymbol));
-    if (pSymbol->get_noNameExport(&bTest) == S_OK) qDebug("get_noNameExport: %d", _pdb_sym_get_noNameExport(pSymbol));
-    if (pSymbol->get_noReturn(&bTest) == S_OK) qDebug("get_noReturn: %d", _pdb_sym_get_noReturn(pSymbol));
-    if (pSymbol->get_noStackOrdering(&bTest) == S_OK) qDebug("get_noStackOrdering: %d", _pdb_sym_get_noStackOrdering(pSymbol));
-    if (pSymbol->get_notReached(&bTest) == S_OK) qDebug("get_notReached: %d", _pdb_sym_get_notReached(pSymbol));
+    if (pSymbol->get_msil(&bTest) == S_OK) qDebug("get_msil: %d", _pdb_result_debug(_pdb_sym_get_msil(pSymbol)));
+    if (pSymbol->get_name(&strTest) == S_OK) qDebug("get_name: %s", _pdb_result_string(_pdb_sym_get_name(pSymbol)).toLatin1().data());
+    if (pSymbol->get_nested(&bTest) == S_OK) qDebug("get_nested: %d", _pdb_result_debug(_pdb_sym_get_nested(pSymbol)));
+    if (pSymbol->get_noInline(&bTest) == S_OK) qDebug("get_noInline: %d", _pdb_result_debug(_pdb_sym_get_noInline(pSymbol)));
+    if (pSymbol->get_noNameExport(&bTest) == S_OK) qDebug("get_noNameExport: %d", _pdb_result_debug(_pdb_sym_get_noNameExport(pSymbol)));
+    if (pSymbol->get_noReturn(&bTest) == S_OK) qDebug("get_noReturn: %d", _pdb_result_debug(_pdb_sym_get_noReturn(pSymbol)));
+    if (pSymbol->get_noStackOrdering(&bTest) == S_OK) qDebug("get_noStackOrdering: %d", _pdb_result_debug(_pdb_sym_get_noStackOrdering(pSymbol)));
+    if (pSymbol->get_notReached(&bTest) == S_OK) qDebug("get_notReached: %d", _pdb_result_debug(_pdb_sym_get_notReached(pSymbol)));
     if (pSymbol->get_numberOfAcceleratorPointerTags(&dwTest) == S_OK)
-        qDebug("get_numberOfAcceleratorPointerTags: %d", _pdb_sym_get_numberOfAcceleratorPointerTags(pSymbol));
-    if (pSymbol->get_numberOfColumns(&dwTest) == S_OK) qDebug("get_numberOfColumns: %d", _pdb_sym_get_numberOfColumns(pSymbol));
-    if (pSymbol->get_numberOfModifiers(&dwTest) == S_OK) qDebug("get_numberOfModifiers: %d", _pdb_sym_get_numberOfModifiers(pSymbol));
-    if (pSymbol->get_numberOfRegisterIndices(&dwTest) == S_OK) qDebug("get_numberOfRegisterIndices: %d", _pdb_sym_get_numberOfRegisterIndices(pSymbol));
-    if (pSymbol->get_numberOfRows(&dwTest) == S_OK) qDebug("get_numberOfRows: %d", _pdb_sym_get_numberOfRows(pSymbol));
+        qDebug("get_numberOfAcceleratorPointerTags: %d", _pdb_result_debug(_pdb_sym_get_numberOfAcceleratorPointerTags(pSymbol)));
+    if (pSymbol->get_numberOfColumns(&dwTest) == S_OK) qDebug("get_numberOfColumns: %d", _pdb_result_debug(_pdb_sym_get_numberOfColumns(pSymbol)));
+    if (pSymbol->get_numberOfModifiers(&dwTest) == S_OK) qDebug("get_numberOfModifiers: %d", _pdb_result_debug(_pdb_sym_get_numberOfModifiers(pSymbol)));
+    if (pSymbol->get_numberOfRegisterIndices(&dwTest) == S_OK) qDebug("get_numberOfRegisterIndices: %d", _pdb_result_debug(_pdb_sym_get_numberOfRegisterIndices(pSymbol)));
+    if (pSymbol->get_numberOfRows(&dwTest) == S_OK) qDebug("get_numberOfRows: %d", _pdb_result_debug(_pdb_sym_get_numberOfRows(pSymbol)));
     if (pSymbol->get_numericProperties(0, &dwTest, dwData) == S_OK) qDebug("get_numericProperties");
-    if (pSymbol->get_objectFileName(&strTest) == S_OK) qDebug("get_objectFileName: %s", _pdb_sym_get_objectFileName(pSymbol).toLatin1().data());
+    if (pSymbol->get_objectFileName(&strTest) == S_OK) qDebug("get_objectFileName: %s", _pdb_result_string(_pdb_sym_get_objectFileName(pSymbol)).toLatin1().data());
     if (pSymbol->get_objectPointerType(&pSymbolTest) == S_OK) qDebug("get_objectPointerType");
-    if (pSymbol->get_oemId(&dwTest) == S_OK) qDebug("get_oemId: %d", _pdb_sym_get_oemId(pSymbol));
-    if (pSymbol->get_oemSymbolId(&dwTest) == S_OK) qDebug("get_oemSymbolId: %d", _pdb_sym_get_oemSymbolId(pSymbol));
-    if (pSymbol->get_offset(&lTest) == S_OK) qDebug("get_offset: %d", _pdb_sym_get_offset(pSymbol));
-    if (pSymbol->get_offsetInUdt(&dwTest) == S_OK) qDebug("get_offsetInUdt: %d", _pdb_sym_get_offsetInUdt(pSymbol));
-    if (pSymbol->get_optimizedCodeDebugInfo(&bTest) == S_OK) qDebug("get_optimizedCodeDebugInfo: %d", _pdb_sym_get_optimizedCodeDebugInfo(pSymbol));
-    if (pSymbol->get_ordinal(&dwTest) == S_OK) qDebug("get_ordinal: %d", _pdb_sym_get_ordinal(pSymbol));
-    if (pSymbol->get_overloadedOperator(&bTest) == S_OK) qDebug("get_overloadedOperator: %d", _pdb_sym_get_overloadedOperator(pSymbol));
-    if (pSymbol->get_packed(&bTest) == S_OK) qDebug("get_packed: %d", _pdb_sym_get_packed(pSymbol));
-    if (pSymbol->get_paramBasePointerRegisterId(&dwTest) == S_OK) qDebug("get_paramBasePointerRegisterId: %d", _pdb_sym_get_paramBasePointerRegisterId(pSymbol));
-    if (pSymbol->get_phaseName(&strTest) == S_OK) qDebug("get_phaseName: %s", _pdb_sym_get_phaseName(pSymbol).toLatin1().data());
-    if (pSymbol->get_platform(&dwTest) == S_OK) qDebug("get_platform: %d", _pdb_sym_get_platform(pSymbol));
-    if (pSymbol->get_privateExport(&bTest) == S_OK) qDebug("get_privateExport: %d", _pdb_sym_get_privateExport(pSymbol));
-    if (pSymbol->get_pure(&bTest) == S_OK) qDebug("get_pure: %d", _pdb_sym_get_pure(pSymbol));
-    if (pSymbol->get_rank(&dwTest) == S_OK) qDebug("get_rank: %d", _pdb_sym_get_rank(pSymbol));
-    if (pSymbol->get_reference(&bTest) == S_OK) qDebug("get_reference: %d", _pdb_sym_get_reference(pSymbol));
-    if (pSymbol->get_registerId(&dwTest) == S_OK) qDebug("get_registerId: %d", _pdb_sym_get_registerId(pSymbol));
-    if (pSymbol->get_registerType(&dwTest) == S_OK) qDebug("get_registerType: %d", _pdb_sym_get_registerType(pSymbol));
-    if (pSymbol->get_relativeVirtualAddress(&dwTest) == S_OK) qDebug("get_relativeVirtualAddress: %d", _pdb_sym_get_relativeVirtualAddress(pSymbol));
-    if (pSymbol->get_restrictedType(&bTest) == S_OK) qDebug("get_restrictedType: %d", _pdb_sym_get_restrictedType(pSymbol));
-    if (pSymbol->get_samplerSlot(&dwTest) == S_OK) qDebug("get_samplerSlot: %d", _pdb_sym_get_samplerSlot(pSymbol));
-    if (pSymbol->get_scoped(&bTest) == S_OK) qDebug("get_scoped: %d", _pdb_sym_get_scoped(pSymbol));
-    if (pSymbol->get_sealed(&bTest) == S_OK) qDebug("get_sealed: %d", _pdb_sym_get_sealed(pSymbol));
-    if (pSymbol->get_signature(&dwTest) == S_OK) qDebug("get_signature: %d", _pdb_sym_get_signature(pSymbol));
-    if (pSymbol->get_sizeInUdt(&dwTest) == S_OK) qDebug("get_sizeInUdt: %d", _pdb_sym_get_sizeInUdt(pSymbol));
-    if (pSymbol->get_slot(&dwTest) == S_OK) qDebug("get_slot: %d", _pdb_sym_get_slot(pSymbol));
-    if (pSymbol->get_sourceFileName(&strTest) == S_OK) qDebug("get_sourceFileName: %s", _pdb_sym_get_sourceFileName(pSymbol).toLatin1().data());
-    if (pSymbol->get_staticSize(&dwTest) == S_OK) qDebug("get_staticSize: %d", _pdb_sym_get_staticSize(pSymbol));
-    if (pSymbol->get_strictGSCheck(&bTest) == S_OK) qDebug("get_strictGSCheck: %d", _pdb_sym_get_strictGSCheck(pSymbol));
-    if (pSymbol->get_stride(&dwTest) == S_OK) qDebug("get_stride: %d", _pdb_sym_get_stride(pSymbol));
+    if (pSymbol->get_oemId(&dwTest) == S_OK) qDebug("get_oemId: %d", _pdb_result_debug(_pdb_sym_get_oemId(pSymbol)));
+    if (pSymbol->get_oemSymbolId(&dwTest) == S_OK) qDebug("get_oemSymbolId: %d", _pdb_result_debug(_pdb_sym_get_oemSymbolId(pSymbol)));
+    if (pSymbol->get_offset(&lTest) == S_OK) qDebug("get_offset: %d", _pdb_result_debug(_pdb_sym_get_offset(pSymbol)));
+    if (pSymbol->get_offsetInUdt(&dwTest) == S_OK) qDebug("get_offsetInUdt: %d", _pdb_result_debug(_pdb_sym_get_offsetInUdt(pSymbol)));
+    if (pSymbol->get_optimizedCodeDebugInfo(&bTest) == S_OK) qDebug("get_optimizedCodeDebugInfo: %d", _pdb_result_debug(_pdb_sym_get_optimizedCodeDebugInfo(pSymbol)));
+    if (pSymbol->get_ordinal(&dwTest) == S_OK) qDebug("get_ordinal: %d", _pdb_result_debug(_pdb_sym_get_ordinal(pSymbol)));
+    if (pSymbol->get_overloadedOperator(&bTest) == S_OK) qDebug("get_overloadedOperator: %d", _pdb_result_debug(_pdb_sym_get_overloadedOperator(pSymbol)));
+    if (pSymbol->get_packed(&bTest) == S_OK) qDebug("get_packed: %d", _pdb_result_debug(_pdb_sym_get_packed(pSymbol)));
+    if (pSymbol->get_paramBasePointerRegisterId(&dwTest) == S_OK) qDebug("get_paramBasePointerRegisterId: %d", _pdb_result_debug(_pdb_sym_get_paramBasePointerRegisterId(pSymbol)));
+    if (pSymbol->get_phaseName(&strTest) == S_OK) qDebug("get_phaseName: %s", _pdb_result_string(_pdb_sym_get_phaseName(pSymbol)).toLatin1().data());
+    if (pSymbol->get_platform(&dwTest) == S_OK) qDebug("get_platform: %d", _pdb_result_debug(_pdb_sym_get_platform(pSymbol)));
+    if (pSymbol->get_privateExport(&bTest) == S_OK) qDebug("get_privateExport: %d", _pdb_result_debug(_pdb_sym_get_privateExport(pSymbol)));
+    if (pSymbol->get_pure(&bTest) == S_OK) qDebug("get_pure: %d", _pdb_result_debug(_pdb_sym_get_pure(pSymbol)));
+    if (pSymbol->get_rank(&dwTest) == S_OK) qDebug("get_rank: %d", _pdb_result_debug(_pdb_sym_get_rank(pSymbol)));
+    if (pSymbol->get_reference(&bTest) == S_OK) qDebug("get_reference: %d", _pdb_result_debug(_pdb_sym_get_reference(pSymbol)));
+    if (pSymbol->get_registerId(&dwTest) == S_OK) qDebug("get_registerId: %d", _pdb_result_debug(_pdb_sym_get_registerId(pSymbol)));
+    if (pSymbol->get_registerType(&dwTest) == S_OK) qDebug("get_registerType: %d", _pdb_result_debug(_pdb_sym_get_registerType(pSymbol)));
+    if (pSymbol->get_relativeVirtualAddress(&dwTest) == S_OK) qDebug("get_relativeVirtualAddress: %d", _pdb_result_debug(_pdb_sym_get_relativeVirtualAddress(pSymbol)));
+    if (pSymbol->get_restrictedType(&bTest) == S_OK) qDebug("get_restrictedType: %d", _pdb_result_debug(_pdb_sym_get_restrictedType(pSymbol)));
+    if (pSymbol->get_samplerSlot(&dwTest) == S_OK) qDebug("get_samplerSlot: %d", _pdb_result_debug(_pdb_sym_get_samplerSlot(pSymbol)));
+    if (pSymbol->get_scoped(&bTest) == S_OK) qDebug("get_scoped: %d", _pdb_result_debug(_pdb_sym_get_scoped(pSymbol)));
+    if (pSymbol->get_sealed(&bTest) == S_OK) qDebug("get_sealed: %d", _pdb_result_debug(_pdb_sym_get_sealed(pSymbol)));
+    if (pSymbol->get_signature(&dwTest) == S_OK) qDebug("get_signature: %d", _pdb_result_debug(_pdb_sym_get_signature(pSymbol)));
+    if (pSymbol->get_sizeInUdt(&dwTest) == S_OK) qDebug("get_sizeInUdt: %d", _pdb_result_debug(_pdb_sym_get_sizeInUdt(pSymbol)));
+    if (pSymbol->get_slot(&dwTest) == S_OK) qDebug("get_slot: %d", _pdb_result_debug(_pdb_sym_get_slot(pSymbol)));
+    if (pSymbol->get_sourceFileName(&strTest) == S_OK) qDebug("get_sourceFileName: %s", _pdb_result_string(_pdb_sym_get_sourceFileName(pSymbol)).toLatin1().data());
+    if (pSymbol->get_staticSize(&dwTest) == S_OK) qDebug("get_staticSize: %d", _pdb_result_debug(_pdb_sym_get_staticSize(pSymbol)));
+    if (pSymbol->get_strictGSCheck(&bTest) == S_OK) qDebug("get_strictGSCheck: %d", _pdb_result_debug(_pdb_sym_get_strictGSCheck(pSymbol)));
+    if (pSymbol->get_stride(&dwTest) == S_OK) qDebug("get_stride: %d", _pdb_result_debug(_pdb_sym_get_stride(pSymbol)));
     if (pSymbol->get_subType(&pSymbolTest) == S_OK) qDebug("get_subType");
-    if (pSymbol->get_subTypeId(&dwTest) == S_OK) qDebug("get_subTypeId: %d", _pdb_sym_get_subTypeId(pSymbol));
-    if (pSymbol->get_symIndexId(&dwTest) == S_OK) qDebug("get_symIndexId: %d", _pdb_sym_get_symIndexId(pSymbol));
-    if (pSymbol->get_symTag(&dwTest) == S_OK) qDebug("get_symTag: %d", _pdb_sym_get_symTag(pSymbol));
-    if (pSymbol->get_symbolsFileName(&strTest) == S_OK) qDebug("get_symbolsFileName: %s", _pdb_sym_get_symbolsFileName(pSymbol).toLatin1().data());
-    if (pSymbol->get_targetOffset(&dwTest) == S_OK) qDebug("get_targetOffset: %d", _pdb_sym_get_targetOffset(pSymbol));
-    if (pSymbol->get_targetRelativeVirtualAddress(&dwTest) == S_OK) qDebug("get_targetRelativeVirtualAddress: %d", _pdb_sym_get_targetRelativeVirtualAddress(pSymbol));
-    if (pSymbol->get_targetSection(&dwTest) == S_OK) qDebug("get_targetSection: %d", _pdb_sym_get_targetSection(pSymbol));
-    if (pSymbol->get_targetVirtualAddress(&ullTest) == S_OK) qDebug("get_targetVirtualAddress: %d", _pdb_sym_get_targetVirtualAddress(pSymbol));
-    if (pSymbol->get_textureSlot(&dwTest) == S_OK) qDebug("get_textureSlot: %d", _pdb_sym_get_textureSlot(pSymbol));
-    if (pSymbol->get_thisAdjust(&lTest) == S_OK) qDebug("get_thisAdjust: %d", _pdb_sym_get_thisAdjust(pSymbol));
-    if (pSymbol->get_thunkOrdinal(&dwTest) == S_OK) qDebug("get_thunkOrdinal: %d", _pdb_sym_get_thunkOrdinal(pSymbol));
-    if (pSymbol->get_timeStamp(&dwTest) == S_OK) qDebug("get_timeStamp: %d", _pdb_sym_get_timeStamp(pSymbol));
-    if (pSymbol->get_token(&dwTest) == S_OK) qDebug("get_token: %d", _pdb_sym_get_token(pSymbol));
+    if (pSymbol->get_subTypeId(&dwTest) == S_OK) qDebug("get_subTypeId: %d", _pdb_result_debug(_pdb_sym_get_subTypeId(pSymbol)));
+    if (pSymbol->get_symIndexId(&dwTest) == S_OK) qDebug("get_symIndexId: %d", _pdb_result_debug(_pdb_sym_get_symIndexId(pSymbol)));
+    if (pSymbol->get_symTag(&dwTest) == S_OK) qDebug("get_symTag: %d", _pdb_result_debug(_pdb_sym_get_symTag(pSymbol)));
+    if (pSymbol->get_symbolsFileName(&strTest) == S_OK) qDebug("get_symbolsFileName: %s", _pdb_result_string(_pdb_sym_get_symbolsFileName(pSymbol)).toLatin1().data());
+    if (pSymbol->get_targetOffset(&dwTest) == S_OK) qDebug("get_targetOffset: %d", _pdb_result_debug(_pdb_sym_get_targetOffset(pSymbol)));
+    if (pSymbol->get_targetRelativeVirtualAddress(&dwTest) == S_OK) qDebug("get_targetRelativeVirtualAddress: %d", _pdb_result_debug(_pdb_sym_get_targetRelativeVirtualAddress(pSymbol)));
+    if (pSymbol->get_targetSection(&dwTest) == S_OK) qDebug("get_targetSection: %d", _pdb_result_debug(_pdb_sym_get_targetSection(pSymbol)));
+    if (pSymbol->get_targetVirtualAddress(&ullTest) == S_OK) qDebug("get_targetVirtualAddress: %d", _pdb_result_debug(_pdb_sym_get_targetVirtualAddress(pSymbol)));
+    if (pSymbol->get_textureSlot(&dwTest) == S_OK) qDebug("get_textureSlot: %d", _pdb_result_debug(_pdb_sym_get_textureSlot(pSymbol)));
+    if (pSymbol->get_thisAdjust(&lTest) == S_OK) qDebug("get_thisAdjust: %d", _pdb_result_debug(_pdb_sym_get_thisAdjust(pSymbol)));
+    if (pSymbol->get_thunkOrdinal(&dwTest) == S_OK) qDebug("get_thunkOrdinal: %d", _pdb_result_debug(_pdb_sym_get_thunkOrdinal(pSymbol)));
+    if (pSymbol->get_timeStamp(&dwTest) == S_OK) qDebug("get_timeStamp: %d", _pdb_result_debug(_pdb_sym_get_timeStamp(pSymbol)));
+    if (pSymbol->get_token(&dwTest) == S_OK) qDebug("get_token: %d", _pdb_result_debug(_pdb_sym_get_token(pSymbol)));
     if (pSymbol->get_type(&pSymbolTest) == S_OK) qDebug("get_type");
-    if (pSymbol->get_typeId(&dwTest) == S_OK) qDebug("get_typeId: %d", _pdb_sym_get_typeId(pSymbol));
+    if (pSymbol->get_typeId(&dwTest) == S_OK) qDebug("get_typeId: %d", _pdb_result_debug(_pdb_sym_get_typeId(pSymbol)));
     if (pSymbol->get_typeIds(0, &dwTest, dwData) == S_OK) qDebug("get_typeIds");
     if (pSymbol->get_types(0, &dwTest, &pSymbolTest) == S_OK) qDebug("get_types");
-    if (pSymbol->get_uavSlot(&dwTest) == S_OK) qDebug("get_uavSlot: %d", _pdb_sym_get_uavSlot(pSymbol));
-    if (pSymbol->get_udtKind(&dwTest) == S_OK) qDebug("get_udtKind: %d", _pdb_sym_get_udtKind(pSymbol));
-    if (pSymbol->get_unalignedType(&bTest) == S_OK) qDebug("get_unalignedType: %d", _pdb_sym_get_unalignedType(pSymbol));
-    if (pSymbol->get_undecoratedName(&strTest) == S_OK) qDebug("get_undecoratedName: %s", _pdb_sym_get_undecoratedName(pSymbol).toLatin1().data());
+    if (pSymbol->get_uavSlot(&dwTest) == S_OK) qDebug("get_uavSlot: %d", _pdb_result_debug(_pdb_sym_get_uavSlot(pSymbol)));
+    if (pSymbol->get_udtKind(&dwTest) == S_OK) qDebug("get_udtKind: %d", _pdb_result_debug(_pdb_sym_get_udtKind(pSymbol)));
+    if (pSymbol->get_unalignedType(&bTest) == S_OK) qDebug("get_unalignedType: %d", _pdb_result_debug(_pdb_sym_get_unalignedType(pSymbol)));
+    if (pSymbol->get_undecoratedName(&strTest) == S_OK) qDebug("get_undecoratedName: %s", _pdb_result_string(_pdb_sym_get_undecoratedName(pSymbol)).toLatin1().data());
     if (pSymbol->get_undecoratedNameEx(0, &strTest) == S_OK) qDebug("get_undecoratedNameEx: %s", _pdb_sym_get_undecoratedNameEx(pSymbol).toLatin1().data());
     if (pSymbol->get_unmodifiedType(&pSymbolTest) == S_OK) qDebug("get_unmodifiedType");
-    if (pSymbol->get_unmodifiedTypeId(&dwTest) == S_OK) qDebug("get_unmodifiedTypeId: %d", _pdb_sym_get_unmodifiedTypeId(pSymbol));
-    if (pSymbol->get_unused(&strTest) == S_OK) qDebug("get_unused: %s", _pdb_sym_get_unused(pSymbol).toLatin1().data());
+    if (pSymbol->get_unmodifiedTypeId(&dwTest) == S_OK) qDebug("get_unmodifiedTypeId: %d", _pdb_result_debug(_pdb_sym_get_unmodifiedTypeId(pSymbol)));
+    if (pSymbol->get_unused(&strTest) == S_OK) qDebug("get_unused: %s", _pdb_result_string(_pdb_sym_get_unused(pSymbol)).toLatin1().data());
     if (pSymbol->get_upperBound(&pSymbolTest) == S_OK) qDebug("get_upperBound");
-    if (pSymbol->get_upperBoundId(&dwTest) == S_OK) qDebug("get_upperBoundId: %d", _pdb_sym_get_upperBoundId(pSymbol));
+    if (pSymbol->get_upperBoundId(&dwTest) == S_OK) qDebug("get_upperBoundId: %d", _pdb_result_debug(_pdb_sym_get_upperBoundId(pSymbol)));
     if (pSymbol->get_value(&varTest) == S_OK) qDebug("get_value");
-    if (pSymbol->get_virtual(&bTest) == S_OK) qDebug("get_virtual: %d", _pdb_sym_get_virtual(pSymbol));
-    if (pSymbol->get_virtualAddress(&ullTest) == S_OK) qDebug("get_virtualAddress: %d", _pdb_sym_get_virtualAddress(pSymbol));
-    if (pSymbol->get_virtualBaseClass(&bTest) == S_OK) qDebug("get_virtualBaseClass: %d", _pdb_sym_get_virtualBaseClass(pSymbol));
-    if (pSymbol->get_virtualBaseDispIndex(&dwTest) == S_OK) qDebug("get_virtualBaseDispIndex: %d", _pdb_sym_get_virtualBaseDispIndex(pSymbol));
-    if (pSymbol->get_virtualBaseOffset(&dwTest) == S_OK) qDebug("get_virtualBaseOffset: %d", _pdb_sym_get_virtualBaseOffset(pSymbol));
-    if (pSymbol->get_virtualBasePointerOffset(&lTest) == S_OK) qDebug("get_virtualBasePointerOffset: %d", _pdb_sym_get_virtualBasePointerOffset(pSymbol));
+    if (pSymbol->get_virtual(&bTest) == S_OK) qDebug("get_virtual: %d", _pdb_result_debug(_pdb_sym_get_virtual(pSymbol)));
+    if (pSymbol->get_virtualAddress(&ullTest) == S_OK) qDebug("get_virtualAddress: %d", _pdb_result_debug(_pdb_sym_get_virtualAddress(pSymbol)));
+    if (pSymbol->get_virtualBaseClass(&bTest) == S_OK) qDebug("get_virtualBaseClass: %d", _pdb_result_debug(_pdb_sym_get_virtualBaseClass(pSymbol)));
+    if (pSymbol->get_virtualBaseDispIndex(&dwTest) == S_OK) qDebug("get_virtualBaseDispIndex: %d", _pdb_result_debug(_pdb_sym_get_virtualBaseDispIndex(pSymbol)));
+    if (pSymbol->get_virtualBaseOffset(&dwTest) == S_OK) qDebug("get_virtualBaseOffset: %d", _pdb_result_debug(_pdb_sym_get_virtualBaseOffset(pSymbol)));
+    if (pSymbol->get_virtualBasePointerOffset(&lTest) == S_OK) qDebug("get_virtualBasePointerOffset: %d", _pdb_result_debug(_pdb_sym_get_virtualBasePointerOffset(pSymbol)));
     if (pSymbol->get_virtualBaseTableType(&pSymbolTest) == S_OK) qDebug("get_virtualBaseTableType");
     if (pSymbol->get_virtualTableShape(&pSymbolTest) == S_OK) qDebug("get_virtualTableShape");
-    if (pSymbol->get_virtualTableShapeId(&dwTest) == S_OK) qDebug("get_virtualTableShapeId: %d", _pdb_sym_get_virtualTableShapeId(pSymbol));
-    if (pSymbol->get_volatileType(&bTest) == S_OK) qDebug("get_volatileType: %d", _pdb_sym_get_volatileType(pSymbol));
-    if (pSymbol->get_wasInlined(&bTest) == S_OK) qDebug("get_wasInlined: %d", _pdb_sym_get_wasInlined(pSymbol));
+    if (pSymbol->get_virtualTableShapeId(&dwTest) == S_OK) qDebug("get_virtualTableShapeId: %d", _pdb_result_debug(_pdb_sym_get_virtualTableShapeId(pSymbol)));
+    if (pSymbol->get_volatileType(&bTest) == S_OK) qDebug("get_volatileType: %d", _pdb_result_debug(_pdb_sym_get_volatileType(pSymbol)));
+    if (pSymbol->get_wasInlined(&bTest) == S_OK) qDebug("get_wasInlined: %d", _pdb_result_debug(_pdb_sym_get_wasInlined(pSymbol)));
     //    if(pSymbol->findChildren(&bTest)==S_OK) qDebug("findChildren");
     //    if(pSymbol->findChildrenEx(&bTest)==S_OK) qDebug("findChildrenEx");
     //    if(pSymbol->findChildrenExByAddr(&bTest)==S_OK) qDebug("findChildrenExByAddr");
@@ -947,13 +994,13 @@ QString XWinPDB::getSymbolName(IDiaSymbol *pSymbol)
 {
     QString sResult;
 
-    sResult = _pdb_sym_get_name(pSymbol);
+    sResult = _pdb_result_string(_pdb_sym_get_name(pSymbol));
 
     // TODO Check more
     if (sResult.contains("<unnamed-tag>")) {
-        sResult = sResult.replace("<unnamed-tag>", QString("_unnamed_%1").arg(_pdb_sym_get_symIndexId(pSymbol)));
+        sResult = sResult.replace("<unnamed-tag>", QString("_unnamed_%1").arg(_pdb_result_uint(_pdb_sym_get_symIndexId(pSymbol))));
     } else if (sResult.contains("<anonymous-tag>")) {
-        sResult = sResult.replace("<anonymous-tag>", QString("_anonymous_%1").arg(_pdb_sym_get_symIndexId(pSymbol)));
+        sResult = sResult.replace("<anonymous-tag>", QString("_anonymous_%1").arg(_pdb_result_uint(_pdb_sym_get_symIndexId(pSymbol))));
     }
 
     return sResult;
@@ -1038,9 +1085,9 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
 
     ELEMTYPE result = {};
 
-    result.nID = _pdb_sym_get_symIndexId(pSymbol);
+    result.nID = _pdb_result_uint(_pdb_sym_get_symIndexId(pSymbol));
 
-    quint32 nSymTag = _pdb_sym_get_symTag(pSymbol);
+    quint32 nSymTag = _pdb_result_uint(_pdb_sym_get_symTag(pSymbol));
 
     if (nSymTag == SymTagData) {
         result.eType = ET_DATA;
@@ -1049,7 +1096,7 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
 
         QString sName = getSymbolName(pSymbol);
 
-        IDiaSymbol *pType = _pdb_sym_get_type(pSymbol);
+        IDiaSymbol *pType = _pdb_result_symbol(_pdb_sym_get_type(pSymbol));
 
         if (pType) {
             ELEMTYPE record = handleType(pType, pOptions, nLevel + 1);
@@ -1065,19 +1112,19 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
             pType->Release();
         }
 
-        result.nOffset = _pdb_sym_get_offset(pSymbol);
+        result.nOffset = _pdb_result_int(_pdb_sym_get_offset(pSymbol));
 
         DWORD dwBitPosition = 0;
 
         if (pSymbol->get_bitPosition(&dwBitPosition) == S_OK) {
             result.nBitOffset = dwBitPosition;
-            result.nBitSize = _pdb_sym_get_length(pSymbol);
+            result.nBitSize = _pdb_result_ulonglong(_pdb_sym_get_length(pSymbol));
         }
     } else if (nSymTag == SymTagBaseType) {
         result.eType = ET_BASETYPE;
 
-        result.nSize = _pdb_sym_get_length(pSymbol);
-        quint32 nBaseType = _pdb_sym_get_baseType(pSymbol);
+        result.nSize = _pdb_result_ulonglong(_pdb_sym_get_length(pSymbol));
+        quint32 nBaseType = _pdb_result_uint(_pdb_sym_get_baseType(pSymbol));
 
         switch (nBaseType) {
             case 0: result.sName = "<btNoType>"; break;
@@ -1143,7 +1190,7 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
         QString sType;
 
         QString sName = getSymbolName(pSymbol);
-        quint32 nKind = _pdb_sym_get_udtKind(pSymbol);
+        quint32 nKind = _pdb_result_uint(_pdb_sym_get_udtKind(pSymbol));
 
         if (nKind == 0) {
             sType = "struct";
@@ -1160,18 +1207,18 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
         }
 
         result.sName = QString("%1 %2").arg(sType, sName);
-        result.nSize = _pdb_sym_get_length(pSymbol);
+        result.nSize = _pdb_result_ulonglong(_pdb_sym_get_length(pSymbol));
     } else if (nSymTag == SymTagPointerType) {
         result.eType = ET_POINTERTYPE;
         QString sRef;
 
-        if (_pdb_sym_get_reference(pSymbol)) {
+        if (_pdb_result_bool(_pdb_sym_get_reference(pSymbol))) {
             sRef = "&";
         } else {
             sRef = "*";
         }
 
-        IDiaSymbol *pType = _pdb_sym_get_type(pSymbol);
+        IDiaSymbol *pType = _pdb_result_symbol(_pdb_sym_get_type(pSymbol));
 
         if (pType) {
             ELEMTYPE record = handleType(pType, pOptions, nLevel + 1);
@@ -1185,15 +1232,15 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
             pType->Release();
         }
 
-        result.nSize = _pdb_sym_get_length(pSymbol);
+        result.nSize = _pdb_result_ulonglong(_pdb_sym_get_length(pSymbol));
     } else if (nSymTag == SymTagArrayType) {
         result.eType = ET_ARRAYTYPE;
-        quint32 nCount = _pdb_sym_get_count(pSymbol);
+        quint32 nCount = _pdb_result_uint(_pdb_sym_get_count(pSymbol));
         // TODO [x][y][z]...
         // TODO if nLimit > X then no prefix type
         // TODO _pdb_sym_get_arrayIndexType
 
-        IDiaSymbol *pType = _pdb_sym_get_type(pSymbol);
+        IDiaSymbol *pType = _pdb_result_symbol(_pdb_sym_get_type(pSymbol));
 
         if (pType) {
             ELEMTYPE record = handleType(pType, pOptions, nLevel + 1);
@@ -1209,12 +1256,12 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
         QString sName = getSymbolName(pSymbol);
 
         result.sName = QString("enum %1").arg(sName);
-        result.nSize = _pdb_sym_get_length(pSymbol);
+        result.nSize = _pdb_result_ulonglong(_pdb_sym_get_length(pSymbol));
     } else if (nSymTag == SymTagFunctionType) {
         result.eType = ET_FUNCTIONTYPE;
         // TODO get_callingConvention
 
-        IDiaSymbol *pType = _pdb_sym_get_type(pSymbol);
+        IDiaSymbol *pType = _pdb_result_symbol(_pdb_sym_get_type(pSymbol));
 
         if (pType) {
             ELEMTYPE record = handleType(pType, pOptions, nLevel + 1);
@@ -1229,16 +1276,16 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
     } else if (nSymTag == SymTagFunction) {
         result.eType = ET_FUNCTION;
 
-        result.sName = _pdb_sym_get_name(pSymbol);
-        result.nSize = _pdb_sym_get_length(pSymbol);
+        result.sName = _pdb_result_string(_pdb_sym_get_name(pSymbol));
+        result.nSize = _pdb_result_ulonglong(_pdb_sym_get_length(pSymbol));
         // TODO get_callingConvention
 
-        IDiaSymbol *pType = _pdb_sym_get_type(pSymbol);
+        IDiaSymbol *pType = _pdb_result_symbol(_pdb_sym_get_type(pSymbol));
 
         if (pType) {
             ELEMTYPE record = handleType(pType, pOptions, nLevel + 1);
 
-            result.sName = QString("%1 %2").arg(record.sName, _pdb_sym_get_name(pSymbol));
+            result.sName = QString("%1 %2").arg(record.sName, _pdb_result_string(_pdb_sym_get_name(pSymbol)));
 
             pType->Release();
         }
@@ -1247,7 +1294,7 @@ XWinPDB::ELEMTYPE XWinPDB::handleType(IDiaSymbol *pSymbol, OPTIONS *pOptions, qi
     } else if (nSymTag == SymTagFunctionArgType) {
         result.eType = ET_FUNCTIONARGTYPE;
 
-        IDiaSymbol *pType = _pdb_sym_get_type(pSymbol);
+        IDiaSymbol *pType = _pdb_result_symbol(_pdb_sym_get_type(pSymbol));
 
         if (pType) {
             ELEMTYPE record = handleType(pType, pOptions, nLevel + 1);
