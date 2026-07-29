@@ -40,6 +40,12 @@ class XWinPDB : public XBinary {
     Q_OBJECT
 
 public:
+    struct INTERNAL_INFO : XBinary::INTERNAL_INFO {};
+
+    virtual bool handleInternalInfo(PDSTRUCT *pPdStruct) override;
+    virtual void *getInternalInfo(PDSTRUCT *pPdStruct) override;
+    virtual void setInternalInfo(void *pInternalInfo) override;
+
     struct OPTIONS {
         bool bFixTypes;
         bool bShowComments;
@@ -146,6 +152,9 @@ private:
     IDiaSession *g_pDiaSession;
     IDiaSymbol *g_pGlobal;
 #endif
+private:
+    INTERNAL_INFO m_internalInfo;
+
 };
 
 #endif  // XWINPDB_H
